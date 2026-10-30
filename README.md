@@ -1,9 +1,11 @@
-# ⚡ AMD AutoTuning & Optimizer (ESCTI Edition)
+# ⚡ AMD AutoTuning & Optimizer (EFF5 Edition)
 
 [![Build & Release](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml/badge.svg)](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml)
 [![Version](https://img.shields.io/badge/Version-v1.1.0-red.svg)](https://github.com/escti/AMD_autotuning/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-blue.svg)](https://microsoft.com/windows)
 [![Architecture](https://img.shields.io/badge/.NET-9.0%20WPF%20Single--File-red.svg)](https://dotnet.microsoft.com/)
+[![Company](https://img.shields.io/badge/Company-EFF5%20Automa%C3%A7%C3%B5es%20Inteligentes-blueviolet.svg)](https://eff5.com.br)
+[![Website](https://img.shields.io/badge/Website-eff5.com.br-0ea5e9.svg)](https://eff5.com.br)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Aplicativo desktop independente (**arquivo único `.exe`, sem instalador e sem dependências externas**) desenvolvido para auditar o hardware, diagnosticar gargalos críticos de firmware/BIOS e aplicar otimizações seguras em 1-clique no ecossistema **AMD Ryzen (AM5/AM4)** e **AMD Radeon (RDNA 4/3/2)** no Windows 11 e 10.
@@ -92,4 +94,4 @@ O arquivo único compilado e independente de 59 MB estará pronto em:
 ## 📝 Licença
 Distribuído sob a licença MIT. Veja `LICENSE` para mais detalhes.
 
-Desenvolvido com excelência por **ESCTI** 🚀
+Desenvolvido com excelência por [**EFF5 Automações Inteligentes**](https://eff5.com.br) 🚀

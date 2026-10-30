@@ -10,6 +10,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ## [1.1.0] - 2026-10-30
 
 ### Adicionado
+- **Identidade da Empresa & Assinatura Digital:**
+  - Fornecedor oficial configurado como `EFF5 Automações Inteligentes`.
+  - Site oficial `https://eff5.com.br` integrado aos metadados do executável e com link direto na interface.
+  - Assinatura digital Authenticode com carimbo de data/hora (SHA256) automatizada no `build.ps1`.
 - **Navegação por Abas Temáticas:**
   - `📊 Painel Geral`: Visão consolidada com cartões de hardware em tempo real e todos os diagnósticos.
   - `🖥️ Sistema Operacional & Latência`: Tweaks de plano de energia CPPC, pagefile 8GB, desativação de Fast Startup e remoção de bloatware.

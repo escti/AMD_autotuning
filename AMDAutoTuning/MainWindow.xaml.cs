@@ -385,6 +385,22 @@ namespace AMDAutoTuning
             });
         }
 
+        private void WebsiteLink_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "https://eff5.com.br",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"Erro ao abrir navegador: {ex.Message}");
+            }
+        }
+
         private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
         private void MaximizeButton_Click(object sender, RoutedEventArgs e)

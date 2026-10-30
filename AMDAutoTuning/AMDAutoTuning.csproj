@@ -10,9 +10,15 @@
     <AssemblyName>AMDAutoTuning</AssemblyName>
     <RootNamespace>AMDAutoTuning</RootNamespace>
     <Version>1.1.0</Version>
-    <Authors>ESCTI</Authors>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <Company>EFF5 Automações Inteligentes</Company>
+    <Authors>EFF5 Automações Inteligentes</Authors>
     <Product>AMD AutoTuning &amp; Optimizer</Product>
     <Description>Otimizador e Auditor de Desempenho para AMD Ryzen e Radeon</Description>
+    <Copyright>Copyright © 2026 EFF5 Automações Inteligentes (eff5.com.br)</Copyright>
+    <PackageProjectUrl>https://eff5.com.br</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/escti/AMD_autotuning</RepositoryUrl>
 
     <!-- Single File Packaging Properties -->
     <PublishSingleFile>true</PublishSingleFile>
