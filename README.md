@@ -1,52 +1,73 @@
 # ⚡ AMD AutoTuning & Optimizer (ESCTI Edition)
 
 [![Build & Release](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml/badge.svg)](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml)
+[![Version](https://img.shields.io/badge/Version-v1.1.0-red.svg)](https://github.com/escti/AMD_autotuning/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-blue.svg)](https://microsoft.com/windows)
 [![Architecture](https://img.shields.io/badge/.NET-9.0%20WPF%20Single--File-red.svg)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Aplicativo desktop independente (**arquivo único `.exe`, sem instalador e sem dependências**) desenvolvido para auditar o hardware, diagnosticar gargalos críticos de firmware/BIOS e aplicar otimizações seguras em 1-clique no ecossistema **AMD Ryzen (AM5/AM4)** e **AMD Radeon (RDNA 4/3/2)** no Windows 11 e 10.
+Aplicativo desktop independente (**arquivo único `.exe`, sem instalador e sem dependências externas**) desenvolvido para auditar o hardware, diagnosticar gargalos críticos de firmware/BIOS e aplicar otimizações seguras em 1-clique no ecossistema **AMD Ryzen (AM5/AM4)** e **AMD Radeon (RDNA 4/3/2)** no Windows 11 e 10.
 
 ---
 
-## 🎯 Por que este projeto nasceu?
+## 📑 Navegação em Abas Temáticas
 
-Muitos computadores modernos de altíssimo desempenho (como plataformas **AM5 Zen 4** com placas **Radeon RX**) sofrem com gargalos silenciosos de configuração de fábrica que o usuário comum não percebe:
+O aplicativo é organizado em abas especializadas para facilitar a auditoria e o controle de cada subsistema:
 
-1. **Resizable BAR / AMD Smart Access Memory (SAM) desativado na BIOS:** A GPU fica limitada a uma janela de barramento PCIe legada de apenas 256 MB, perdendo até 15% de FPS e gerando engasgos (*stutters*) em DirectX 12/Vulkan.
-2. **Monitores 120Hz/144Hz ligados em Docks DisplayLink USB:** A CPU passa a consumir ciclos para comprimir imagem por software em vez de usar as saídas diretas DisplayPort/HDMI da Radeon.
-3. **Plano de Energia "Desempenho Máximo":** Ao contrário do que parece, no Ryzen 7000/9000 o plano "Desempenho Máximo" prejudica o agendamento **AMD CPPC**, impedindo os núcleos de esfriarem e reduzindo a margem térmica para o boost single-core máximo.
-4. **Memória Virtual (Pagefile) fragmentada ou limitada:** Causa crashes aleatórios para a área de trabalho (*Crash to Desktop*) e esgotamento de commit em sessões de jogos pesados e render.
-5. **Bloatware e Otimizadores Falsos:** Serviços em segundo plano de softwares como IObit/Advanced SystemCare que geram picos de latência DPC.
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  ⚡ AMD AutoTuning & Optimizer (ESCTI)                                      ─  □  ✕  │
+├─────────────┬───────────────────┬──────────────┬──────────────┬─────────────┬──────────┤
+│  📊 Painel  │ 🖥️ OS & Latência │ ⚡ CPU & RAM │ 🎮 GPU/Telas │ 🖴 Drivers  │ 🛡️ Hist. │
+├─────────────┴───────────────────┴──────────────┴──────────────┴─────────────┴──────────┤
+│ [Health Score: 95/100]  Processador: Ryzen 7600X  |  GPU: Radeon RX 9070 XT             │
+│                                                                                        │
+│  ✓ AMD Smart Access Memory (ReBAR): ATIVADO (16 GB mapeados)                           │
+│  ✓ Plano de Energia: OTIMIZADO (Equilibrado para CPPC)               [↩ Reverter]       │
+│  ✓ Memória Virtual: SEGURO (8192 MB fixo no NVMe)                    [↩ Reverter]       │
+│  ✓ Fast Startup: DESATIVADO (Ciclo limpo de drivers)                 [↩ Reverter]       │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **📊 Painel Geral:** Visão consolidada com medidor de *Health Score*, resumo dos 4 pilares de hardware e botão de otimização em 1-clique.
+2. **🖥️ Sistema Operacional & Latência:** Tweaks de gerenciamento de energia, agendamento de núcleos CPPC, memória virtual contínua, remoção de bloatware e pilha TCP.
+3. **⚡ Processador & RAM:** Presets do Curve Optimizer (-15 a -30 all-core), guia do Eco Mode (PPT 88W) e verificação da proporção DDR5 UCLK:MCLK 1:1 e FCLK 2000 MHz.
+4. **🎮 Placa de Vídeo & Telas:** Verificação da janela física de VRAM do Resizable BAR, topologia dos monitores (alerta de DisplayLink USB) e velocidade do barramento PCIe.
+5. **🖴 Drivers & Armazenamento:** Estado do comando TRIM para SSDs NVMe e SATA, integridade e verificação dos componentes do chipset AMD AM5.
+6. **🛡️ Histórico & Reversão:** Livro-razão (*ledger*) de alterações com timestamp e botão `↩ Reverter` para restaurar o estado original de qualquer tweak a qualquer momento.
 
 ---
 
-## 🚀 Recursos Principais
+## 📋 Catálogo Completo de Alterações e Segurança
 
-*   🔍 **Auditoria de Hardware Instantânea:** Detecta automaticamente modelo de CPU, núcleos, GPU, VRAM, velocidade da RAM DDR5/DDR4 e BIOS da placa-mãe.
-*   📊 **Detecção Real do Resizable BAR:** Analisa diretamente a tabela de endereçamento físico PCIe da GPU para confirmar se a janela de VRAM completa está liberada.
-*   ⚡ **Otimização Segura em 1-Clique:**
-    *   Restaura o plano **Equilibrado** nativo com CPPC para máxima frequência do Ryzen.
-    *   Fixa o arquivo de paginação em **8192 MB (8 GB)** contínuo no SSD NVMe.
-    *   Desativa serviços e telemetrias intrusivas de bloatware.
-    *   Ajusta a pilha de rede **TCP (Auto-Tuning Normal, RSS e Timings)** para menor latência em jogos online.
-*   📖 **Guias Interativos Integrados:**
-    *   Passo a passo com telas para placas-mãe **MSI (Click BIOS 5)** ativar *Above 4G Decoding* e *ReBAR*.
-    *   Guia de undervolt com **Curve Optimizer (-20 all-core)** e **Eco Mode (PPT 88W)** para o Ryzen 5 7600X operar até 20°C mais frio mantendo 5.3 GHz.
-    *   Instruções de conexão física direta para múltiplos monitores na GPU.
-*   📦 **Executável Único (Standalone Single-File):** Apenas baixe o `AMDAutoTuning.exe` e execute. Não exige instalação de runtime do .NET, Python ou bibliotecas externas.
+Total transparência: veja exatamente o que cada otimização altera no sistema e como é feita a reversão:
+
+| Tweak | O que faz no Windows | Benefício | Como Reverter |
+| :--- | :--- | :--- | :--- |
+| **Plano Equilibrado (CPPC)** | Define o plano `381b4222...` e ajusta o throttle min em 0% e max em 100%. | Permite aos núcleos ociosos do Zen 4 entrarem em C-States, liberando margem térmica para o boost single-core máximo (>5.3 GHz). | Botão `↩ Reverter` restaura o plano anterior no registro. |
+| **Memória Virtual (Pagefile)** | Grava `c:\pagefile.sys 8192 8192` no registro `Memory Management`. | Aloca um bloco contínuo de 8GB no SSD NVMe, eliminando fragmentação e prevenindo erros de "Out of Memory" em jogos pesados. | Botão `↩ Reverter` restaura a paginação dinâmica anterior. |
+| **Desativar Fast Startup** | Define `HiberbootEnabled = 0` em `Session Manager\Power`. | Garante desligamento e reinicialização 100% limpos do kernel, evitando acúmulo de fragmentação de RAM e bugs de driver de vídeo. | Botão `↩ Reverter` redefine `HiberbootEnabled = 1`. |
+| **Desativar Bloatware IObit** | Para e desativa os serviços `IObitUnSvr`, `AdvancedSystemCare` e remove da inicialização. | Elimina varreduras contínuas em segundo plano e estabiliza a latência DPC (reduz microengasgos em jogos). | Botão `↩ Reverter` reconfigura o serviço para inicialização automática. |
+| **Otimização TCP** | Configura `autotuninglevel=normal`, `rss=enabled` e desativa `timestamps`. | Menor bufferbloat e melhor distribuição de processamento de pacotes pelos núcleos da CPU na placa Realtek 2.5GbE. | Botão `↩ Reverter` restaura os valores de rede padrão do Windows. |
+| **Limpeza de Inicialização** | Remove entradas duplicadas do Google Drive em perfis de sistema (.DEFAULT e S-1-5-18). | Menor consumo parasitário de memória RAM na inicialização. | Reconfigurável nas opções do Google Drive. |
+
+---
+
+## 🛡️ Sistema de Segurança e Ponto de Restauração
+
+Antes de aplicar qualquer alteração:
+* O usuário pode clicar em **"Criar Ponto de Restauração"** na aba *Histórico & Reversão* para registrar um snapshot oficial do Windows (`Checkpoint-Computer`).
+* Todas as alterações de registro e serviços são salvas em `%APPDATA%\AMDAutoTuning\tweaks_history.json`.
+* O botão **"Desfazer Todas as Alterações"** restaura em lote todos os valores originais.
 
 ---
 
 ## 🖥️ Como Usar
 
-1. Acesse a aba [Releases](https://github.com/escti/AMD_autotuning/releases) e baixe a versão mais recente do **`AMDAutoTuning.exe`**.
-2. Clique com o botão direito e execute como Administrador (necessário para ler dados de barramento PCI e aplicar os planos de energia do Windows).
-3. Analise o status dos cartões:
-   * 🟢 **OTIMIZADO:** Componente configurado perfeitamente.
-   * 🟡 **ATENÇÃO:** Oportunidade de melhoria recomendada.
-   * 🔴 **CRÍTICO:** Gargalo ativo afetando desempenho.
-4. Clique em **"Otimizar Tudo Seguro (1-Clique)"** ou use os botões individuais de cada cartão.
+1. Baixe o executável mais recente na aba [Releases](https://github.com/escti/AMD_autotuning/releases): **`AMDAutoTuning.exe`**.
+2. Clique com o botão direito e selecione **"Executar como Administrador"** (necessário para ler o barramento PCI e aplicar os planos do sistema).
+3. Verifique o **Health Score** e os cartões sinalizados em vermelho ou amarelo.
+4. Clique em **"Otimizar Tudo Seguro (1-Clique)"** ou navegue pelas abas para aplicar ou reverter ajustes pontuais.
 
 ---
 
@@ -54,21 +75,21 @@ Muitos computadores modernos de altíssimo desempenho (como plataformas **AM5 Ze
 
 ### Pré-requisitos
 * Windows 10/11 x64
-* [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) ou superior
+* [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 
-### Compilação Rápida via PowerShell
-Execute o script automatizado na raiz do repositório:
+### Compilação em 1 Comando
+Na raiz do repositório, execute:
 
 ```powershell
 .\build.ps1
 ```
 
-O executável único e independente será gerado em:
+O arquivo único compilado e independente de 59 MB estará pronto em:
 `dist\AMDAutoTuning.exe`
 
 ---
 
 ## 📝 Licença
-Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
+Distribuído sob a licença MIT. Veja `LICENSE` para mais detalhes.
 
-Desenvolvido por **ESCTI** 🚀
+Desenvolvido com excelência por **ESCTI** 🚀

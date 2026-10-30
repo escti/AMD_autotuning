@@ -6,8 +6,8 @@
         xmlns:local="clr-namespace:AMDAutoTuning"
         mc:Ignorable="d"
         Title="AMD AutoTuning &amp; Optimizer - ESCTI" 
-        Height="820" Width="1120"
-        MinHeight="700" MinWidth="950"
+        Height="850" Width="1160"
+        MinHeight="720" MinWidth="980"
         WindowStartupLocation="CenterScreen"
         Background="#0E1015"
         Foreground="#E2E8F0"
@@ -20,13 +20,12 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <!-- Custom ScrollBar Style -->
         <Style TargetType="ScrollBar">
             <Setter Property="Background" Value="#151821"/>
             <Setter Property="Width" Value="8"/>
         </Style>
 
-        <!-- Rounded Button Style -->
+        <!-- Rounded Primary Action Button -->
         <Style x:Key="ActionButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#DC2626"/>
             <Setter Property="Foreground" Value="White"/>
@@ -79,6 +78,18 @@
             </Style.Triggers>
         </Style>
 
+        <Style x:Key="RevertButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="#374151"/>
+            <Setter Property="Foreground" Value="#F3F4F6"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4B5563"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- TitleBar Buttons -->
         <Style x:Key="TitleBarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -104,21 +115,51 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Custom Tab Navigation Radio Button -->
+        <Style x:Key="TabNavButtonStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="TabBorder" Background="{TemplateBinding Background}" 
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#1C212D"/>
+                                <Setter Property="Foreground" Value="#F1F5F9"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#DC2626"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
-        <!-- Background Ambient Accent -->
         <Border BorderBrush="#1F2430" BorderThickness="1">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="42" /> <!-- Custom Title Bar -->
-                    <RowDefinition Height="Auto" /> <!-- Header & Quick Actions -->
-                    <RowDefinition Height="Auto" /> <!-- Hardware Overview Cards -->
-                    <RowDefinition Height="*" />    <!-- Main Diagnostic Items List -->
-                    <RowDefinition Height="Auto" /> <!-- Console Log / Status Footer -->
+                    <RowDefinition Height="42" /> <!-- Title Bar -->
+                    <RowDefinition Height="Auto" /> <!-- Banner & Health Score -->
+                    <RowDefinition Height="Auto" /> <!-- Tab Navigation Bar -->
+                    <RowDefinition Height="*" />    <!-- Tab Content Area -->
+                    <RowDefinition Height="Auto" /> <!-- Console Log Footer -->
                 </Grid.RowDefinitions>
 
-                <!-- ROW 0: Title Bar -->
+                <!-- ROW 0: Custom Title Bar -->
                 <Grid Grid.Row="0" Background="#12151D">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -129,15 +170,13 @@
                         <TextBlock Text="⚡" FontSize="16" Foreground="#EF4444" Margin="0,0,8,0" VerticalAlignment="Center"/>
                         <TextBlock Text="AMD AutoTuning &amp; Optimizer" FontWeight="Bold" FontSize="13" Foreground="#F8FAFC" VerticalAlignment="Center"/>
                         <Border Background="#252A36" CornerRadius="4" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="ESCTI Edition v1.0" FontSize="10" Foreground="#94A3B8" FontWeight="SemiBold"/>
+                            <TextBlock Text="ESCTI Edition v1.1" FontSize="10" Foreground="#94A3B8" FontWeight="SemiBold"/>
                         </Border>
                     </StackPanel>
 
-                    <!-- Window Control Buttons (Non-Client Area) -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
                         <Button Style="{StaticResource TitleBarButtonStyle}" Content="─" Click="MinimizeButton_Click" ToolTip="Minimizar"/>
                         <Button Style="{StaticResource TitleBarButtonStyle}" Content="□" Click="MaximizeButton_Click" ToolTip="Maximizar"/>
-                        <!-- Close Button with custom Hover red -->
                         <Button Content="✕" Click="CloseButton_Click" ToolTip="Fechar">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource TitleBarButtonStyle}">
@@ -153,26 +192,42 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- ROW 1: Header Banner & Actions -->
-                <Border Grid.Row="1" Background="#161922" BorderBrush="#202533" BorderThickness="0,0,0,1" Padding="20,16">
+                <!-- ROW 1: Header Banner with Health Score -->
+                <Border Grid.Row="1" Background="#161922" BorderBrush="#202533" BorderThickness="0,0,0,1" Padding="20,14">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
+                        <!-- Titles -->
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Auditoria &amp; Otimização de Performance" FontSize="19" FontWeight="Bold" Foreground="#F8FAFC"/>
+                            <TextBlock Text="Auditoria &amp; Otimização de Performance" FontSize="18" FontWeight="Bold" Foreground="#F8FAFC"/>
                             <TextBlock Text="Diagnóstico profundo de BIOS, Resizable BAR, agendamento AMD CPPC e ajustes de latência." 
-                                       FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
+                                       FontSize="11.5" Foreground="#94A3B8" Margin="0,3,0,0"/>
                         </StackPanel>
 
-                        <!-- Global Actions -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Health Score Widget -->
+                        <Border Grid.Column="1" Background="#1A1E29" BorderBrush="#2A3245" BorderThickness="1" CornerRadius="8" Padding="14,6" Margin="0,0,16,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="HEALTH SCORE" FontSize="9.5" FontWeight="Bold" Foreground="#64748B"/>
+                                    <TextBlock x:Name="TxtHealthStatus" Text="Pontuação Geral" FontSize="11" Foreground="#94A3B8"/>
+                                </StackPanel>
+                                <Border x:Name="BorderScoreBadge" Background="#EF4444" CornerRadius="20" Width="44" Height="44">
+                                    <TextBlock x:Name="TxtHealthScore" Text="75" FontSize="16" FontWeight="Bold" Foreground="White" 
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Global Action Buttons -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Style="{StaticResource SecondaryButtonStyle}" 
                                     Margin="0,0,10,0" 
                                     Click="RescanButton_Click"
-                                    ToolTip="Executar nova auditoria completa do hardware">
+                                    ToolTip="Executar nova auditoria de todos os componentes">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🔄" Margin="0,0,6,0"/>
                                     <TextBlock Text="Re-analisar"/>
@@ -181,7 +236,7 @@
 
                             <Button Style="{StaticResource SuccessButtonStyle}" 
                                     Click="OptimizeAllButton_Click"
-                                    ToolTip="Aplica plano equilibrado, fixa pagefile em 8GB e otimiza rede em 1 clique">
+                                    ToolTip="Aplica plano equilibrado, fixa pagefile em 8GB, desativa fast startup e otimiza rede">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚡" FontWeight="Bold" Margin="0,0,6,0"/>
                                     <TextBlock Text="Otimizar Tudo Seguro (1-Clique)"/>
@@ -191,122 +246,242 @@
                     </Grid>
                 </Border>
 
-                <!-- ROW 2: Hardware Summary Cards -->
-                <Border Grid.Row="2" Background="#11131A" Padding="20,14" BorderBrush="#1D222E" BorderThickness="0,0,0,1">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- CPU CARD -->
-                        <Border Grid.Column="0" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,8,0">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🖥️" FontSize="14" Margin="0,0,6,0"/>
-                                    <TextBlock Text="PROCESSADOR" FontSize="10" FontWeight="Bold" Foreground="#EF4444"/>
-                                </StackPanel>
-                                <TextBlock x:Name="TxtCpuName" Text="{Binding CpuName}" FontWeight="Bold" FontSize="13" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock x:Name="TxtCpuCores" Text="{Binding CpuCores}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- GPU CARD -->
-                        <Border Grid.Column="1" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="4,0,4,0">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🎮" FontSize="14" Margin="0,0,6,0"/>
-                                    <TextBlock Text="PLACA DE VÍDEO" FontSize="10" FontWeight="Bold" Foreground="#38BDF8"/>
-                                </StackPanel>
-                                <TextBlock x:Name="TxtGpuName" Text="{Binding GpuName}" FontWeight="Bold" FontSize="13" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock x:Name="TxtGpuDriver" Text="{Binding GpuDriver}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- RAM CARD -->
-                        <Border Grid.Column="2" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="4,0,4,0">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="⚡" FontSize="14" Margin="0,0,6,0"/>
-                                    <TextBlock Text="MEMÓRIA RAM" FontSize="10" FontWeight="Bold" Foreground="#FACC15"/>
-                                </StackPanel>
-                                <TextBlock x:Name="TxtRamSummary" Text="{Binding RamSummary}" FontWeight="Bold" FontSize="13" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock x:Name="TxtRamSpeed" Text="{Binding RamSpeed}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- MOTHERBOARD & BIOS CARD -->
-                        <Border Grid.Column="3" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="8,0,0,0">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🖴" FontSize="14" Margin="0,0,6,0"/>
-                                    <TextBlock Text="PLACA-MÃE &amp; BIOS" FontSize="10" FontWeight="Bold" Foreground="#4ADE80"/>
-                                </StackPanel>
-                                <TextBlock x:Name="TxtMotherboard" Text="{Binding Motherboard}" FontWeight="Bold" FontSize="13" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock x:Name="TxtBiosVersion" Text="{Binding BiosVersion}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
+                <!-- ROW 2: Custom Tab Navigation Bar -->
+                <Border Grid.Row="2" Background="#11131A" BorderBrush="#1C202B" BorderThickness="0,0,0,1" Padding="20,8">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="TabDashboard" Style="{StaticResource TabNavButtonStyle}" Content="📊 Painel Geral" IsChecked="True" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabOs" Style="{StaticResource TabNavButtonStyle}" Content="🖥️ Sistema Operacional &amp; Latência" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabCpuRam" Style="{StaticResource TabNavButtonStyle}" Content="⚡ Processador &amp; RAM" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabGpuDisplays" Style="{StaticResource TabNavButtonStyle}" Content="🎮 Placa de Vídeo &amp; Telas" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabDriversBios" Style="{StaticResource TabNavButtonStyle}" Content="🖴 Drivers &amp; Armazenamento" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabHistory" Style="{StaticResource TabNavButtonStyle}" Content="🛡️ Histórico &amp; Reversão" Checked="Tab_Checked"/>
+                    </StackPanel>
                 </Border>
 
-                <!-- ROW 3: Diagnostic Cards List -->
-                <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,12">
-                    <ItemsControl x:Name="ItemsDiagnosticList">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#161922" BorderBrush="#222836" BorderThickness="1" CornerRadius="8" Margin="0,0,0,10" Padding="16,12">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                <!-- ROW 3: Tab Content Area -->
+                <Grid Grid.Row="3">
+                    <!-- VIEW A: DIAGNOSTIC ITEMS (Used for Dashboard, OS, CPU_RAM, GPU_DISPLAYS, DRIVERS_BIOS) -->
+                    <Grid x:Name="ViewDiagnostics" Visibility="Visible">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /> <!-- Hardware Overview Cards (visible only on Dashboard) -->
+                            <RowDefinition Height="*" />    <!-- Items List -->
+                        </Grid.RowDefinitions>
 
-                                        <!-- Information Column -->
-                                        <StackPanel Grid.Column="0">
-                                            <!-- Category and Status Badge -->
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                                <Border Background="{Binding StatusBadgeColor}" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding StatusIcon}" Foreground="White" FontWeight="Bold" FontSize="10" Margin="0,0,4,0"/>
-                                                        <TextBlock Text="{Binding StatusText}" Foreground="White" FontWeight="Bold" FontSize="9"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center"/>
-                                            </StackPanel>
+                        <!-- Hardware Summary Cards (Only on Dashboard) -->
+                        <Border x:Name="PanelHardwareOverview" Grid.Row="0" Background="#11131A" Padding="20,12" BorderBrush="#1D222E" BorderThickness="0,0,0,1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
-                                            <!-- Title -->
-                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Bold" Foreground="#F8FAFC"/>
-
-                                            <!-- Values Row -->
-                                            <Grid Margin="0,6,0,6">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Estado Atual: " FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding CurrentValue}" FontSize="12" Foreground="#E2E8F0"/>
-                                            </Grid>
-
-                                            <!-- Description -->
-                                            <TextBlock Text="{Binding Description}" FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                <!-- CPU CARD -->
+                                <Border Grid.Column="0" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🖥️" FontSize="13" Margin="0,0,6,0"/>
+                                            <TextBlock Text="PROCESSADOR" FontSize="9.5" FontWeight="Bold" Foreground="#EF4444"/>
                                         </StackPanel>
-
-                                        <!-- Action Button Column -->
-                                        <Border Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                            <Button Style="{StaticResource ActionButtonStyle}" 
-                                                    Content="{Binding ActionLabel}"
-                                                    Tag="{Binding ActionKey}"
-                                                    Click="DiagnosticActionButton_Click"
-                                                    Visibility="{Binding HasAction, Converter={x:Static local:BooleanToVisibilityConverter.Instance}}"/>
-                                        </Border>
-                                    </Grid>
+                                        <TextBlock Text="{Binding CpuName}" FontWeight="Bold" FontSize="12.5" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding CpuCores}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                    </StackPanel>
                                 </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+
+                                <!-- GPU CARD -->
+                                <Border Grid.Column="1" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="4,0,4,0">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🎮" FontSize="13" Margin="0,0,6,0"/>
+                                            <TextBlock Text="PLACA DE VÍDEO" FontSize="9.5" FontWeight="Bold" Foreground="#38BDF8"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding GpuName}" FontWeight="Bold" FontSize="12.5" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding GpuDriver}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- RAM CARD -->
+                                <Border Grid.Column="2" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="4,0,4,0">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="⚡" FontSize="13" Margin="0,0,6,0"/>
+                                            <TextBlock Text="MEMÓRIA RAM" FontSize="9.5" FontWeight="Bold" Foreground="#FACC15"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding RamSummary}" FontWeight="Bold" FontSize="12.5" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding RamSpeed}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- MOTHERBOARD & BIOS CARD -->
+                                <Border Grid.Column="3" Background="#1A1E29" BorderBrush="#272D3D" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🖴" FontSize="13" Margin="0,0,6,0"/>
+                                            <TextBlock Text="PLACA-MÃE &amp; BIOS" FontSize="9.5" FontWeight="Bold" Foreground="#4ADE80"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Motherboard}" FontWeight="Bold" FontSize="12.5" Foreground="#F1F5F9" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding BiosVersion}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Items Scroll Viewer -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,14">
+                            <ItemsControl x:Name="ItemsDiagnosticList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#161922" BorderBrush="#222836" BorderThickness="1" CornerRadius="8" Margin="0,0,0,10" Padding="16,12">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Grid.Column="0">
+                                                    <!-- Category Badge -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                        <Border Background="{Binding StatusBadgeColor}" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding StatusIcon}" Foreground="White" FontWeight="Bold" FontSize="10" Margin="0,0,4,0"/>
+                                                                <TextBlock Text="{Binding StatusText}" Foreground="White" FontWeight="Bold" FontSize="9"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding Category}" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+
+                                                    <!-- Title -->
+                                                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="Bold" Foreground="#F8FAFC"/>
+
+                                                    <!-- Values Row -->
+                                                    <Grid Margin="0,6,0,6">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Estado Atual: " FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding CurrentValue}" FontSize="12" Foreground="#E2E8F0"/>
+                                                    </Grid>
+
+                                                    <!-- Description -->
+                                                    <TextBlock Text="{Binding Description}" FontSize="11.5" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- Action / Revert Column -->
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0" Orientation="Horizontal">
+                                                    <Button Style="{StaticResource ActionButtonStyle}" 
+                                                            Content="{Binding ActionLabel}"
+                                                            Tag="{Binding ActionKey}"
+                                                            Click="DiagnosticActionButton_Click"
+                                                            Visibility="{Binding HasAction, Converter={x:Static local:BooleanToVisibilityConverter.Instance}}"
+                                                            Margin="0,0,8,0"/>
+
+                                                    <Button Style="{StaticResource RevertButtonStyle}" 
+                                                            Content="↩ Reverter"
+                                                            Tag="{Binding RevertKey}"
+                                                            Click="RevertActionButton_Click"
+                                                            Visibility="{Binding CanRevert, Converter={x:Static local:BooleanToVisibilityConverter.Instance}}"
+                                                            ToolTip="Desfaz esta alteração voltando à configuração original"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- VIEW B: HISTORY & REVERSION TAB -->
+                    <Grid x:Name="ViewHistory" Visibility="Collapsed" Margin="20,16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- History Actions Header -->
+                        <Border Grid.Row="0" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="🛡️ Histórico de Modificações &amp; Pontos de Segurança" FontSize="15" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                    <TextBlock Text="Todas as alterações aplicadas são salvas em um ledger local. Você pode reverter ajustes a qualquer momento ou criar Pontos de Restauração do Windows."
+                                               FontSize="11.5" Foreground="#94A3B8" Margin="0,4,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0" Click="CreateRestorePointButton_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🛡️" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Criar Ponto de Restauração"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button Style="{StaticResource ActionButtonStyle}" Click="RevertAllButton_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="↩" FontWeight="Bold" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Desfazer Todas as Alterações"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- History Items List -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="ItemsHistoryList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#161922" BorderBrush="#242B3B" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,10">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Grid.Column="0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13.5" Foreground="#F8FAFC"/>
+                                                        <TextBlock Text="  •  " Foreground="#64748B"/>
+                                                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontSize="11" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+
+                                                    <Grid Margin="0,6,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Valor Original: " FontSize="11.5" Foreground="#94A3B8" FontWeight="SemiBold"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding PreviousValue}" FontSize="11.5" Foreground="#E2E8F0"/>
+                                                    </Grid>
+
+                                                    <Grid Margin="0,2,0,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="Valor Aplicado: " FontSize="11.5" Foreground="#94A3B8" FontWeight="SemiBold"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding AppliedValue}" FontSize="11.5" Foreground="#22C55E" FontWeight="SemiBold"/>
+                                                    </Grid>
+                                                </StackPanel>
+
+                                                <Button Grid.Column="1" Style="{StaticResource RevertButtonStyle}" 
+                                                        Content="↩ Reverter"
+                                                        Tag="{Binding RevertKey}"
+                                                        Click="RevertActionButton_Click"
+                                                        VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
 
                 <!-- ROW 4: Console Log Footer -->
                 <Border Grid.Row="4" Background="#0F1117" BorderBrush="#1C212D" BorderThickness="0,1,0,0" Padding="14,10">
@@ -318,13 +493,13 @@
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="LOG DE OPERAÇÕES:" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
-                            <TextBlock x:Name="TxtLogStatus" Text="Pronto. Todos os componentes analisados com sucesso." FontSize="10" Foreground="#38BDF8" Margin="8,0,0,0"/>
+                            <TextBlock x:Name="TxtLogStatus" Text="Pronto. Todos os subsistemas analisados." FontSize="10" Foreground="#38BDF8" Margin="8,0,0,0"/>
                         </StackPanel>
 
                         <TextBox Grid.Row="1" x:Name="TxtConsoleLog" 
                                  Background="#0A0C10" Foreground="#A5B4FC" BorderBrush="#1E2330" BorderThickness="1"
                                  FontFamily="Consolas" FontSize="11" 
-                                 Height="75" Margin="0,6,0,0"
+                                 Height="70" Margin="0,6,0,0"
                                  IsReadOnly="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
                     </Grid>
                 </Border>

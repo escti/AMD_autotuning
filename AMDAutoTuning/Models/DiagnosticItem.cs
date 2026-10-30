@@ -19,12 +19,15 @@ namespace AMDAutoTuning.Models
         private string _description = string.Empty;
         private bool _hasAction;
         private string _actionLabel = string.Empty;
+        private bool _canRevert;
 
         public string Id { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
+        public string CategoryKey { get; set; } = "OS"; // Dashboard, OS, CPU_RAM, GPU_DISPLAYS, DRIVERS_BIOS
         public string RecommendedValue { get; set; } = string.Empty;
         public string ActionKey { get; set; } = string.Empty;
+        public string RevertKey { get; set; } = string.Empty;
 
         public DiagnosticSeverity Severity
         {
@@ -64,6 +67,12 @@ namespace AMDAutoTuning.Models
         {
             get => _actionLabel;
             set { if (_actionLabel != value) { _actionLabel = value; OnPropertyChanged(); } }
+        }
+
+        public bool CanRevert
+        {
+            get => _canRevert;
+            set { if (_canRevert != value) { _canRevert = value; OnPropertyChanged(); } }
         }
 
         public string StatusBadgeColor => Severity switch

@@ -9,7 +9,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>AMDAutoTuning</AssemblyName>
     <RootNamespace>AMDAutoTuning</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>ESCTI</Authors>
     <Product>AMD AutoTuning &amp; Optimizer</Product>
     <Description>Otimizador e Auditor de Desempenho para AMD Ryzen e Radeon</Description>

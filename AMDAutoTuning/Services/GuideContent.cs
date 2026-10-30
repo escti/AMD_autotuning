@@ -75,6 +75,28 @@ OPÇÃO B: Direto na BIOS MSI (Definitivo e Permanente):
    • Curve Optimizer Magnitude: [20]
 5. Pressione [F10] para salvar e reiniciar.",
 
+                "GUIDE_RAM" => @"=======================================================
+GUIA DE MEMÓRIA RAM DDR5 NO AMD ZEN 4 (AM5)
+=======================================================
+
+Configuração Atual Detectada:
+• 32 GB (2x 16GB) DDR5-5200 a 1.10V (JEDEC Padrão)
+• Slots: DIMMA2 e DIMMB2 (Configuração correta em Dual Channel!)
+
+Regras Fundamentais para a Menor Latência no AM5:
+1. UCLK DIV1 MODE (Controlador de Memória):
+   • O controlador de memória interno (UCLK) DEVE operar em proporção 1:1 com o clock real da memória (MCLK).
+   • Na BIOS MSI: Overclocking (OC) -> [UCLK DIV1 MODE] -> Mude para [UCLK=MCLK].
+   • NUNCA use UCLK=MCLK/2 (isso dobra a latência de acesso aos dados).
+
+2. FCLK FREQUENCY (Infinity Fabric):
+   • O valor de referência ideal e universalmente estável para os processadores Ryzen 7000 é [2000 MHz].
+   • Na BIOS MSI: Overclocking (OC) -> [FCLK Frequency] -> Selecione [2000 MHz].
+
+3. Perfil EXPO / XMP:
+   • Se os seus pentes tiverem perfil de fábrica para 5600 ou 6000 MT/s, ative o botão [A-XMP / EXPO] no topo da BIOS MSI.
+   • Caso sejam pentes JEDEC 5200 puros (1.10V), eles são 100% seguros e estáveis. O maior ganho sem risco de instabilidade no seu setup já vem do Curve Optimizer e do Resizable BAR!",
+
                 _ => "Instruções não disponíveis."
             };
         }

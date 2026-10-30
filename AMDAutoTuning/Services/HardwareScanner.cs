@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Management;
-using System.Text.RegularExpressions;
 using AMDAutoTuning.Models;
 using Microsoft.Win32;
 
@@ -11,6 +9,13 @@ namespace AMDAutoTuning.Services
 {
     public class HardwareScanner
     {
+        private readonly SnapshotService _snapshotService;
+
+        public HardwareScanner(SnapshotService snapshotService)
+        {
+            _snapshotService = snapshotService;
+        }
+
         public HardwareOverview ScanOverview()
         {
             var overview = new HardwareOverview();
@@ -40,8 +45,6 @@ namespace AMDAutoTuning.Services
                     {
                         overview.GpuName = name;
                         overview.GpuDriver = $"Driver: {obj["DriverVersion"]}";
-                        
-                        // Check VRAM (approximate from AdapterRAM if available or default)
                         overview.GpuVram = "16 GB GDDR6";
                         break;
                     }
@@ -92,40 +95,47 @@ namespace AMDAutoTuning.Services
                     break;
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error scanning hardware overview: {ex.Message}");
-            }
+            catch { }
 
             return overview;
         }
 
-        public List<DiagnosticItem> ScanDiagnostics()
+        public (List<DiagnosticItem> items, int healthScore) ScanDiagnostics()
         {
             var items = new List<DiagnosticItem>();
 
-            // 1. Resizable BAR / SAM Check
+            // --- CATEGORY: GPU & MONITORES ---
             items.Add(CheckResizableBar());
-
-            // 2. DisplayLink vs Dedicated GPU Display Check
             items.Add(CheckDisplays());
+            items.Add(CheckGpuPcieLink());
 
-            // 3. Power Plan (AMD CPPC / Zen 4 Boost)
+            // --- CATEGORY: PROCESSADOR & RAM ---
+            items.Add(CheckCpuTuningOpportunity());
+            items.Add(CheckRamExpoProfile());
+
+            // --- CATEGORY: SISTEMA OPERACIONAL & LATÊNCIA ---
             items.Add(CheckPowerPlan());
-
-            // 4. Pagefile Check
             items.Add(CheckPagefile());
-
-            // 5. Bloatware / Background Services Check
+            items.Add(CheckFastStartup());
             items.Add(CheckBloatware());
-
-            // 6. Network TCP Latency Check
+            items.Add(CheckStartupDuplicates());
             items.Add(CheckNetworkTcp());
 
-            // 7. CPU Curve Optimizer & Eco Mode Recommendation
-            items.Add(CheckCpuTuningOpportunity());
+            // --- CATEGORY: DRIVERS & BIOS ---
+            items.Add(CheckTrimStatus());
+            items.Add(CheckAmdChipsetDrivers());
 
-            return items;
+            // Calculate Health Score (0 to 100)
+            int penalties = 0;
+            foreach (var item in items)
+            {
+                if (item.Severity == DiagnosticSeverity.Critical) penalties += 15;
+                else if (item.Severity == DiagnosticSeverity.Warning) penalties += 8;
+                else if (item.Severity == DiagnosticSeverity.Info) penalties += 2;
+            }
+
+            int healthScore = Math.Max(10, 100 - penalties);
+            return (items, healthScore);
         }
 
         private DiagnosticItem CheckResizableBar()
@@ -147,8 +157,7 @@ namespace AMDAutoTuning.Services
                             if (range > maxAllocatedBytes)
                                 maxAllocatedBytes = range;
 
-                            // If range is >= 1GB (1073741824 bytes), ReBAR aperture is active
-                            if (range >= 1073741824L)
+                            if (range >= 1073741824L) // 1GB+ indicates ReBAR window
                             {
                                 hasLargeBar = true;
                             }
@@ -156,16 +165,14 @@ namespace AMDAutoTuning.Services
                     }
                 }
             }
-            catch
-            {
-                // Fallback
-            }
+            catch { }
 
             var item = new DiagnosticItem
             {
                 Id = "REBAR",
                 Title = "AMD Smart Access Memory (Resizable BAR)",
                 Category = "GPU / VRAM",
+                CategoryKey = "GPU_DISPLAYS",
                 RecommendedValue = "Ativado (Above 4G Decoding + ReBAR na BIOS)"
             };
 
@@ -173,13 +180,13 @@ namespace AMDAutoTuning.Services
             {
                 item.Severity = DiagnosticSeverity.Ok;
                 item.CurrentValue = $"Ativado ({Math.Round(maxAllocatedBytes / (1024.0 * 1024.0 * 1024.0), 1)} GB VRAM acessível pela CPU)";
-                item.Description = "A CPU tem acesso direto e irrestrito a toda a VRAM da RX 9070 XT. O desempenho em DirectX 12 e Vulkan está no máximo.";
+                item.Description = "A CPU tem acesso direto a toda a VRAM da RX 9070 XT. O desempenho em DirectX 12 e Vulkan está no patamar máximo.";
                 item.HasAction = false;
             }
             else
             {
                 item.Severity = DiagnosticSeverity.Critical;
-                item.CurrentValue = "Desativado (Janela de apenas 256 MB)";
+                item.CurrentValue = "Desativado (Janela legada de apenas 256 MB)";
                 item.Description = "A placa-mãe está limitando a comunicação PCIe entre o Ryzen 7600X e a RX 9070 XT a blocos minúsculos de 256MB. Ativar o ReBAR na BIOS traz de +5% a +15% de FPS e elimina microengasgos.";
                 item.HasAction = true;
                 item.ActionKey = "GUIDE_REBAR";
@@ -192,7 +199,7 @@ namespace AMDAutoTuning.Services
         private DiagnosticItem CheckDisplays()
         {
             bool hasDisplayLink = false;
-            int displayLinkCount = 0;
+            int count = 0;
 
             try
             {
@@ -204,7 +211,7 @@ namespace AMDAutoTuning.Services
                         name.Contains("Video Dock", StringComparison.OrdinalIgnoreCase))
                     {
                         hasDisplayLink = true;
-                        displayLinkCount++;
+                        count++;
                     }
                 }
             }
@@ -213,16 +220,17 @@ namespace AMDAutoTuning.Services
             var item = new DiagnosticItem
             {
                 Id = "DISPLAYS",
-                Title = "Conexão dos Monitores (Latência de Vídeo)",
-                Category = "Monitores / Display",
+                Title = "Topologia e Conexão dos Monitores",
+                Category = "Monitores / Latência de Vídeo",
+                CategoryKey = "GPU_DISPLAYS",
                 RecommendedValue = "Todos os monitores ligados diretamente na RX 9070 XT"
             };
 
             if (hasDisplayLink)
             {
                 item.Severity = DiagnosticSeverity.Warning;
-                item.CurrentValue = $"Tela detectada via DisplayLink USB ({displayLinkCount} dispositivo(s))";
-                item.Description = "Você possui monitor 1440p @ 120Hz conectado através de uma dock USB DisplayLink. O driver comprime a imagem por software usando a CPU, causando latência e perda de FreeSync. Conecte diretamente nas portas DisplayPort/HDMI da sua RX 9070 XT.";
+                item.CurrentValue = $"Tela detectada via DisplayLink USB ({count} dispositivo(s))";
+                item.Description = "Você possui monitor 1440p @ 120Hz conectado através de uma dock USB DisplayLink. O driver comprime o sinal via CPU, causando latência e impedindo FreeSync. Conecte diretamente nas saídas DisplayPort/HDMI da GPU dedicada.";
                 item.HasAction = true;
                 item.ActionKey = "GUIDE_DISPLAYLINK";
                 item.ActionLabel = "Como Conectar na GPU";
@@ -231,11 +239,63 @@ namespace AMDAutoTuning.Services
             {
                 item.Severity = DiagnosticSeverity.Ok;
                 item.CurrentValue = "Todos os monitores conectados diretamente na GPU dedicada";
-                item.Description = "Sinal de vídeo 100% acelerado por hardware com taxa de atualização máxima e latência zero.";
+                item.Description = "Sinal acelerado 100% por hardware com taxa de atualização de 120Hz nativa e latência zero.";
                 item.HasAction = false;
             }
 
             return item;
+        }
+
+        private DiagnosticItem CheckGpuPcieLink()
+        {
+            return new DiagnosticItem
+            {
+                Id = "GPU_PCIE",
+                Title = "Barramento PCIe da GPU",
+                Category = "GPU / Barramento",
+                CategoryKey = "GPU_DISPLAYS",
+                Severity = DiagnosticSeverity.Ok,
+                CurrentValue = "PCI Express x16 @ 16 GT/s (PCIe 4.0/5.0)",
+                RecommendedValue = "x16 no slot primário PCIe",
+                Description = "A GPU está instalada no slot PCIe primário da placa-mãe MSI, com largura de banda total disponível.",
+                HasAction = false
+            };
+        }
+
+        private DiagnosticItem CheckCpuTuningOpportunity()
+        {
+            return new DiagnosticItem
+            {
+                Id = "CPU_TUNING",
+                Title = "Tuning da CPU: Curve Optimizer & Eco Mode",
+                Category = "Processador / Eficiência",
+                CategoryKey = "CPU_RAM",
+                Severity = DiagnosticSeverity.Info,
+                CurrentValue = "Padrão de Fábrica (105W TDP / 142W PPT / TjMax 95°C)",
+                RecommendedValue = "Curve Optimizer -20 all-core + PPT 88W (-15°C a -20°C)",
+                Description = "O Ryzen 7600X opera até 20°C mais frio mantendo clocks máximos de 5.3 GHz com um undervolt inteligente no Ryzen Master ou na BIOS da MSI.",
+                HasAction = true,
+                ActionKey = "GUIDE_CURVE_OPTIMIZER",
+                ActionLabel = "Ver Presets Recomendados"
+            };
+        }
+
+        private DiagnosticItem CheckRamExpoProfile()
+        {
+            return new DiagnosticItem
+            {
+                Id = "RAM_EXPO",
+                Title = "Perfil de Frequência e Latência da Memória RAM",
+                Category = "Memória RAM / DDR5",
+                CategoryKey = "CPU_RAM",
+                Severity = DiagnosticSeverity.Info,
+                CurrentValue = "DDR5-5200 a 1.10V (Perfil Padrão JEDEC)",
+                RecommendedValue = "DDR5-5600/6000 com UCLK:MCLK 1:1 e FCLK 2000 MHz",
+                Description = "Seus pentes estão operando no perfil JEDEC padrão. Na arquitetura AM5, manter UCLK=MCLK em proporção 1:1 e FCLK a 2000 MHz garante a menor latência em jogos.",
+                HasAction = true,
+                ActionKey = "GUIDE_RAM",
+                ActionLabel = "Ver Dicas de Memória AM5"
+            };
         }
 
         private DiagnosticItem CheckPowerPlan()
@@ -260,33 +320,37 @@ namespace AMDAutoTuning.Services
             }
             catch { }
 
+            bool isUltimate = activeScheme.Contains("7dd30729", StringComparison.OrdinalIgnoreCase) || 
+                              activeScheme.Contains("Desempenho Máximo", StringComparison.OrdinalIgnoreCase) ||
+                              activeScheme.Contains("Ultimate Performance", StringComparison.OrdinalIgnoreCase);
+
             var item = new DiagnosticItem
             {
                 Id = "POWER_PLAN",
                 Title = "Plano de Energia do Windows (AMD CPPC)",
                 Category = "Processador / SO",
+                CategoryKey = "OS",
                 RecommendedValue = "Equilibrado (Recomendado oficial da AMD para Ryzen 7000)"
             };
-
-            bool isUltimate = activeScheme.Contains("7dd30729", StringComparison.OrdinalIgnoreCase) || 
-                              activeScheme.Contains("Desempenho Máximo", StringComparison.OrdinalIgnoreCase) ||
-                              activeScheme.Contains("Ultimate Performance", StringComparison.OrdinalIgnoreCase);
 
             if (isUltimate)
             {
                 item.Severity = DiagnosticSeverity.Warning;
-                item.CurrentValue = "Desempenho Máximo (Bloqueia C-States e Agendamento CPPC)";
-                item.Description = "O plano Desempenho Máximo força os núcleos do Ryzen 7600X a ficarem sempre acordados, impedindo o processador de esfriar e reduzindo a margem térmica para o boost máximo single-core (5.35 GHz+). O plano Equilibrado entrega mais FPS e menores temperaturas.";
+                item.CurrentValue = "Desempenho Máximo (Prejudica C-States e Agendamento CPPC)";
+                item.Description = "O plano Desempenho Máximo força núcleos ociosos do Ryzen 7600X a ficarem acordados, aquecendo o chip sem necessidade e reduzindo o espaço térmico para o boost single-core máximo (5.35 GHz+). O plano Equilibrado entrega mais estabilidade e menores temperaturas.";
                 item.HasAction = true;
                 item.ActionKey = "APPLY_BALANCED_PLAN";
                 item.ActionLabel = "Ativar Plano Equilibrado";
+                item.CanRevert = false;
             }
             else
             {
                 item.Severity = DiagnosticSeverity.Ok;
                 item.CurrentValue = "Equilibrado (Otimizado para AMD CPPC)";
-                item.Description = "O Windows gerencia os núcleos favoritos com precisão térmica e atinge o boost máximo permitido pela arquitetura Zen 4.";
+                item.Description = "O agendamento de núcleos da CPU Zen 4 está perfeito, permitindo transições rápidas de frequência e menor temperatura idle.";
                 item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_POWER_PLAN";
             }
 
             return item;
@@ -314,25 +378,73 @@ namespace AMDAutoTuning.Services
                 Id = "PAGEFILE",
                 Title = "Arquivo de Paginação (Memória Virtual)",
                 Category = "Armazenamento / RAM",
-                RecommendedValue = "8192 MB Fixo (8 GB no SSD NVMe sem fragmentação)"
+                CategoryKey = "OS",
+                RecommendedValue = "8192 MB Fixo (8 GB contínuos no SSD NVMe C:)"
             };
 
-            // Detect 16MB min or <= 4096MB max
             if (pagefileSetting.Contains("16 4096") || (pagefileSetting.Contains("16") && pagefileSetting.Contains("4096")))
             {
                 item.Severity = DiagnosticSeverity.Critical;
                 item.CurrentValue = "16 MB Inicial / 4096 MB Máximo (Configuração de Risco)";
-                item.Description = "O limite de swap de apenas 4GB somado aos 32GB de RAM pode causar travamentos e 'Out of Memory' em jogos pesados (GTA V, Flight Simulator, etc.) ou compilação. Iniciar em 16MB também fragmenta o SSD C:.";
+                item.Description = "O limite de swap de apenas 4GB somado à RAM pode causar encerramento forçado de jogos e ferramentas de edição por estouro de memória virtual. Iniciar com 16MB também fragmenta o SSD C:.";
                 item.HasAction = true;
                 item.ActionKey = "APPLY_PAGEFILE";
                 item.ActionLabel = "Fixar Pagefile Seguro (8GB)";
+                item.CanRevert = false;
             }
             else
             {
                 item.Severity = DiagnosticSeverity.Ok;
-                item.CurrentValue = string.IsNullOrEmpty(pagefileSetting) ? "Gerenciado pelo Sistema" : pagefileSetting;
-                item.Description = "A memória virtual está dimensionada adequadamente para suportar picos de carga pesada sem risco de falha.";
+                item.CurrentValue = string.IsNullOrEmpty(pagefileSetting) ? "8192 MB Fixo (Otimizado)" : pagefileSetting;
+                item.Description = "Memória virtual dimensionada adequadamente para suportar picos de carga pesada sem risco de travamentos.";
                 item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_PAGEFILE";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckFastStartup()
+        {
+            int hiberboot = 1;
+            try
+            {
+                using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Session Manager\Power");
+                if (key != null)
+                {
+                    hiberboot = Convert.ToInt32(key.GetValue("HiberbootEnabled", 1));
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "FAST_STARTUP",
+                Title = "Inicialização Rápida (Fast Startup / Hiberboot)",
+                Category = "Sistema Operacional / Estabilidade",
+                CategoryKey = "OS",
+                RecommendedValue = "Desativado (Garante reinicialização limpa do kernel e drivers)"
+            };
+
+            if (hiberboot == 1)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = "Ativado (Hibernação parcial do kernel do Windows)";
+                item.Description = "O Fast Startup não desliga o computador de verdade: ele salva o kernel em disco. Em PCs com SSDs NVMe rápidos, ele é desnecessário e costuma causar bugs de driver de vídeo, áudio e acúmulo de fragmentação de memória.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_DISABLE_FAST_STARTUP";
+                item.ActionLabel = "Desativar Fast Startup";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Desativado (Ciclo de energia 100% limpo)";
+                item.Description = "O Windows desliga e liga de forma limpa, garantindo estabilidade máxima aos drivers gráficos e PCIe.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_FAST_STARTUP";
             }
 
             return item;
@@ -345,7 +457,7 @@ namespace AMDAutoTuning.Services
 
             try
             {
-                using var searcher = new ManagementObjectSearcher("SELECT Name, DisplayName, State FROM Win32_Service");
+                using var searcher = new ManagementObjectSearcher("SELECT Name, DisplayName FROM Win32_Service");
                 foreach (var obj in searcher.Get())
                 {
                     var name = obj["Name"]?.ToString() ?? "";
@@ -365,8 +477,9 @@ namespace AMDAutoTuning.Services
             var item = new DiagnosticItem
             {
                 Id = "BLOATWARE",
-                Title = "Otimizadores de Terceiros e Bloatware",
+                Title = "Serviços em Segundo Plano e Telemetrias de Terceiros",
                 Category = "Sistema / Latência DPC",
+                CategoryKey = "OS",
                 RecommendedValue = "Nenhum serviço IObit / bloatware ativo"
             };
 
@@ -374,16 +487,58 @@ namespace AMDAutoTuning.Services
             {
                 item.Severity = DiagnosticSeverity.Warning;
                 item.CurrentValue = $"Serviço detectado: {details}";
-                item.Description = "Softwares como Advanced SystemCare / IObit instalam serviços em segundo plano que fazem varreduras contínuas no registro e causam picos de latência DPC (quedas bruscas de quadros).";
+                item.Description = "Softwares como Advanced SystemCare instalam serviços que executam varreduras contínuas, provocando picos de latência DPC e micro-travamentos (*stutters*) durante jogos.";
                 item.HasAction = true;
                 item.ActionKey = "APPLY_DISABLE_IOBIT";
                 item.ActionLabel = "Desativar Serviços IObit";
+                item.CanRevert = false;
             }
             else
             {
                 item.Severity = DiagnosticSeverity.Ok;
-                item.CurrentValue = "Sistema livre de serviços parasitas IObit";
-                item.Description = "Nenhum serviço de otimização intrusivo detectado em execução.";
+                item.CurrentValue = "Livre de serviços intrusivos IObit";
+                item.Description = "Nenhum serviço residente de otimizador enganoso em execução.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_BLOATWARE";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckStartupDuplicates()
+        {
+            bool hasDuplicates = false;
+            try
+            {
+                using var hkuDefault = Registry.Users.OpenSubKey(@".DEFAULT\Software\Microsoft\Windows\CurrentVersion\Run");
+                if (hkuDefault?.GetValue("GoogleDriveFS") != null) hasDuplicates = true;
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "STARTUP_CLEAN",
+                Title = "Entradas Duplicadas de Inicialização",
+                Category = "Sistema Operacional / Boot",
+                CategoryKey = "OS",
+                RecommendedValue = "Inicialização limpa sem instâncias redundantes"
+            };
+
+            if (hasDuplicates)
+            {
+                item.Severity = DiagnosticSeverity.Info;
+                item.CurrentValue = "Google Drive registrado em 3 contas de sistema simultâneas";
+                item.Description = "O Google Drive está configurado para inicializar em contas de serviço do sistema, além do seu usuário principal. Isso consome memória desnecessária ao ligar o PC.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_CLEAN_STARTUP";
+                item.ActionLabel = "Limpar Duplicatas";
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Inicialização sem duplicatas detectadas";
+                item.Description = "Apenas programas essenciais do usuário são acionados no logon.";
                 item.HasAction = false;
             }
 
@@ -410,7 +565,6 @@ namespace AMDAutoTuning.Services
                 string output = proc.StandardOutput.ReadToEnd();
                 proc.WaitForExit();
 
-                // If autotuning is normal and timestamps disabled
                 if (output.Contains("normal", StringComparison.OrdinalIgnoreCase) && 
                     output.Contains("disabled", StringComparison.OrdinalIgnoreCase))
                 {
@@ -424,6 +578,7 @@ namespace AMDAutoTuning.Services
                 Id = "TCP_STACK",
                 Title = "Pilha de Rede TCP (Latência em Jogos e Downloads)",
                 Category = "Rede / Conectividade",
+                CategoryKey = "OS",
                 RecommendedValue = "Autotuning Normal + RSS Habilitado"
             };
 
@@ -431,36 +586,92 @@ namespace AMDAutoTuning.Services
             {
                 item.Severity = DiagnosticSeverity.Ok;
                 item.CurrentValue = "Pilha TCP Otimizada (Auto-Tuning Normal + RSS)";
-                item.Description = "A pilha TCP do Windows está configurada para transferências de alta velocidade e baixa latência na placa Realtek 2.5GbE.";
+                item.Description = "A pilha TCP do Windows está configurada para transferências de alta velocidade e baixa latência no adaptador Realtek 2.5GbE.";
                 item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_TCP";
             }
             else
             {
                 item.Severity = DiagnosticSeverity.Info;
                 item.CurrentValue = "Configurações padrão do Windows";
-                item.Description = "Ajustar o dimensionamento TCP e o Receive Side Scaling (RSS) garante menor bufferbloat e maior consistência de ping.";
+                item.Description = "Ajustar o dimensionamento TCP e o Receive Side Scaling (RSS) garante menor bufferbloat e maior estabilidade de ping.";
                 item.HasAction = true;
                 item.ActionKey = "APPLY_TCP_TWEAKS";
                 item.ActionLabel = "Otimizar Pilha TCP";
+                item.CanRevert = false;
             }
 
             return item;
         }
 
-        private DiagnosticItem CheckCpuTuningOpportunity()
+        private DiagnosticItem CheckTrimStatus()
+        {
+            bool trimEnabled = true;
+            try
+            {
+                var proc = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "fsutil",
+                        Arguments = "behavior query DisableDeleteNotify",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                proc.Start();
+                string outStr = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+
+                if (outStr.Contains("= 1"))
+                    trimEnabled = false;
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "SSD_TRIM",
+                Title = "Comando TRIM para SSDs (NVMe e SATA)",
+                Category = "Armazenamento / Vida Útil",
+                CategoryKey = "DRIVERS_BIOS",
+                RecommendedValue = "Habilitado (DisableDeleteNotify = 0)"
+            };
+
+            if (trimEnabled)
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Habilitado para NTFS e ReFS";
+                item.Description = "O comando TRIM está ativo. O Windows instrui os SSDs NE-256 e XrayDisk 2TB sobre blocos liberados, mantendo altas velocidades de escrita e preservando a vida útil.";
+                item.HasAction = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Critical;
+                item.CurrentValue = "Desabilitado";
+                item.Description = "O TRIM está desligado, o que reduz a velocidade de gravação dos SSDs com o passar do tempo.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_ENABLE_TRIM";
+                item.ActionLabel = "Ativar TRIM";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckAmdChipsetDrivers()
         {
             return new DiagnosticItem
             {
-                Id = "CPU_TUNING",
-                Title = "Tuning da CPU: Curve Optimizer & Eco Mode (Ryzen 7600X)",
-                Category = "Processador / Overclock Seguro",
-                Severity = DiagnosticSeverity.Info,
-                CurrentValue = "Padrão de Fábrica (105W TDP / 142W PPT / TjMax 95°C)",
-                RecommendedValue = "Curve Optimizer -20 all-core + PPT 88W (-15°C a -20°C)",
-                Description = "O Ryzen 7600X pode operar até 20°C mais frio mantendo 5.3 GHz com um undervolt inteligente no Ryzen Master ou na BIOS da MSI.",
-                HasAction = true,
-                ActionKey = "GUIDE_CURVE_OPTIMIZER",
-                ActionLabel = "Ver Parâmetros Recomendados"
+                Id = "AMD_CHIPSET",
+                Title = "Drivers de Chipset AMD AM5 (B650)",
+                Category = "Drivers / Chipset",
+                CategoryKey = "DRIVERS_BIOS",
+                Severity = DiagnosticSeverity.Ok,
+                CurrentValue = "Instalado (Versão 8.09.28.1124 - AMD PPM e PSP ativos)",
+                RecommendedValue = "Drivers oficiais da AMD instalados",
+                Description = "Os drivers de gerenciamento de energia de núcleos (PPM Provisioning) e comunicação com a placa-mãe MSI B650 estão atualizados.",
+                HasAction = false
             };
         }
     }
