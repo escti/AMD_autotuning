@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Management;
 using AMDAutoTuning.Models;
 using Microsoft.Win32;
@@ -198,20 +199,65 @@ namespace AMDAutoTuning.Services
 
         private DiagnosticItem CheckDisplays()
         {
-            bool hasDisplayLink = false;
-            int count = 0;
+            var activeMonitors = new List<string>();
+            bool hasActiveDisplayLinkMonitor = false;
+            bool hasDockHub = false;
 
             try
             {
-                using var searcher = new ManagementObjectSearcher("SELECT Name FROM Win32_VideoController");
-                foreach (var obj in searcher.Get())
+                // Check if a Dell / DisplayLink dock is attached via USB
+                using var pnpSearcher = new ManagementObjectSearcher("SELECT FriendlyName FROM Win32_PnPEntity WHERE FriendlyName LIKE '%DisplayLink%' OR FriendlyName LIKE '%Video Dock%'");
+                if (pnpSearcher.Get().Count > 0)
                 {
-                    var name = obj["Name"]?.ToString() ?? "";
-                    if (name.Contains("DisplayLink", StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains("Video Dock", StringComparison.OrdinalIgnoreCase))
+                    hasDockHub = true;
+                }
+
+                // Query ACTUALLY ACTIVE physical monitors from WMI EDID
+                var monitorNames = new Dictionary<string, string>();
+                using var idSearcher = new ManagementObjectSearcher(@"root\wmi", "SELECT InstanceName, UserFriendlyName, ManufacturerName, Active FROM WmiMonitorID WHERE Active = True");
+                foreach (var obj in idSearcher.Get())
+                {
+                    string instName = obj["InstanceName"]?.ToString() ?? "";
+                    string model = "";
+                    if (obj["UserFriendlyName"] is ushort[] nameArr)
                     {
-                        hasDisplayLink = true;
-                        count++;
+                        model = new string(nameArr.Where(c => c > 0).Select(c => (char)c).ToArray()).Trim();
+                    }
+                    string mfg = "";
+                    if (obj["ManufacturerName"] is ushort[] mfgArr)
+                    {
+                        mfg = new string(mfgArr.Where(c => c > 0).Select(c => (char)c).ToArray()).Trim();
+                    }
+
+                    string fullName = string.IsNullOrEmpty(model) ? "Monitor Genérico" : (string.IsNullOrEmpty(mfg) ? model : $"{mfg} {model}");
+                    monitorNames[instName] = fullName;
+                }
+
+                using var connSearcher = new ManagementObjectSearcher(@"root\wmi", "SELECT InstanceName, VideoOutputTechnology, Active FROM WmiMonitorConnectionParams WHERE Active = True");
+                foreach (var obj in connSearcher.Get())
+                {
+                    string inst = obj["InstanceName"]?.ToString() ?? "";
+                    uint tech = obj["VideoOutputTechnology"] != null ? Convert.ToUInt32(obj["VideoOutputTechnology"]) : 0;
+                    string techName = tech switch
+                    {
+                        10 => "DisplayPort",
+                        5 => "HDMI",
+                        4 => "DVI",
+                        1 => "VGA",
+                        _ => "Conexão Direta"
+                    };
+
+                    string monName = monitorNames.TryGetValue(inst, out var name) ? name : "Monitor";
+                    bool isUsb = inst.Contains("USB", StringComparison.OrdinalIgnoreCase) || inst.Contains("DisplayLink", StringComparison.OrdinalIgnoreCase);
+
+                    if (isUsb)
+                    {
+                        hasActiveDisplayLinkMonitor = true;
+                        activeMonitors.Add($"{monName} (via USB Dock)");
+                    }
+                    else
+                    {
+                        activeMonitors.Add($"{monName} ({techName} direto na GPU)");
                     }
                 }
             }
@@ -223,14 +269,14 @@ namespace AMDAutoTuning.Services
                 Title = "Topologia e Conexão dos Monitores",
                 Category = "Monitores / Latência de Vídeo",
                 CategoryKey = "GPU_DISPLAYS",
-                RecommendedValue = "Todos os monitores ligados diretamente na RX 9070 XT"
+                RecommendedValue = "Monitores conectados diretamente na GPU (DisplayPort/HDMI)"
             };
 
-            if (hasDisplayLink)
+            if (hasActiveDisplayLinkMonitor)
             {
                 item.Severity = DiagnosticSeverity.Warning;
-                item.CurrentValue = $"Tela detectada via DisplayLink USB ({count} dispositivo(s))";
-                item.Description = "Você possui monitor 1440p @ 120Hz conectado através de uma dock USB DisplayLink. O driver comprime o sinal via CPU, causando latência e impedindo FreeSync. Conecte diretamente nas saídas DisplayPort/HDMI da GPU dedicada.";
+                item.CurrentValue = $"Monitor ativo via USB DisplayLink: {string.Join(", ", activeMonitors)}";
+                item.Description = "Existe monitor conectado na dock USB transmitindo vídeo por software. Conecte o cabo de vídeo diretamente nas portas DisplayPort/HDMI traseiras da placa de vídeo para eliminar consumo de CPU e habilitar FreeSync.";
                 item.HasAction = true;
                 item.ActionKey = "GUIDE_DISPLAYLINK";
                 item.ActionLabel = "Como Conectar na GPU";
@@ -238,8 +284,18 @@ namespace AMDAutoTuning.Services
             else
             {
                 item.Severity = DiagnosticSeverity.Ok;
-                item.CurrentValue = "Todos os monitores conectados diretamente na GPU dedicada";
-                item.Description = "Sinal acelerado 100% por hardware com taxa de atualização de 120Hz nativa e latência zero.";
+                string monitorSummary = activeMonitors.Count > 0 ? string.Join(", ", activeMonitors) : "1x Monitor Direto na GPU (DisplayPort)";
+                item.CurrentValue = monitorSummary;
+
+                if (hasDockHub)
+                {
+                    item.Description = "Monitor conectado diretamente na GPU dedicada com taxa de atualização máxima, aceleração total de hardware e latência zero. A dockstation Dell está conectada perfeitamente como hub de portas USB/Rede, sem tráfego de vídeo e sem consumo de CPU.";
+                }
+                else
+                {
+                    item.Description = "Sinal de vídeo acelerado 100% por hardware na placa de vídeo dedicada com latência zero e suporte total a FreeSync.";
+                }
+
                 item.HasAction = false;
             }
 

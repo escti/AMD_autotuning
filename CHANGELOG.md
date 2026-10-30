@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.1.2] - 2026-10-30
+
+### Corrigido
+- **Detecção Precisa de Monitores Físicos:**
+  - Substituição da leitura genérica de controladoras de vídeo pelo barramento EDID PnP (`WmiMonitorID` e `WmiMonitorConnectionParams`).
+  - Eliminação de falso positivo para dockstations USB (Dell/DisplayLink) sem monitores conectados: o app agora valida a tela ativa diretamente na GPU dedicada e reconhece a dock exclusivamente como hub de portas/rede.
+  - Correção no ciclo de vida de inicialização de abas WPF (`NullReferenceException` ao abrir o executável).
+
+---
+
 ## [1.1.0] - 2026-10-30
 
 ### Adicionado
