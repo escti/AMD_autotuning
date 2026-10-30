@@ -57,6 +57,15 @@ if (-not $SkipSign -and (Test-Path $exePath)) {
         $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=$certSubject" -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(5)
     }
 
+    # Ensure certificate is in TrustedPublisher and Root for UAC verification
+    try {
+        $tempCer = Join-Path $env:TEMP "eff5_codesign.cer"
+        $cert | Export-Certificate -FilePath $tempCer -Force | Out-Null
+        certutil -addstore -user TrustedPublisher $tempCer | Out-Null
+        certutil -addstore -f -user Root $tempCer | Out-Null
+        Remove-Item $tempCer -Force -ErrorAction SilentlyContinue
+    } catch { }
+
     try {
         $sigResult = Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -ErrorAction Stop
         Write-Host "Assinatura digital aplicada com êxito! Carimbo de tempo validado." -ForegroundColor Green

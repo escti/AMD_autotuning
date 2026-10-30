@@ -20,17 +20,19 @@ namespace AMDAutoTuning
         private HardwareOverview _overview = new();
         private List<DiagnosticItem> _allDiagnostics = new();
         private string _activeTabKey = "DASHBOARD";
+        private bool _isInitialized = false;
 
         public ObservableCollection<DiagnosticItem> DisplayedDiagnostics { get; } = new();
         public ObservableCollection<TweakSnapshot> DisplayedHistory { get; } = new();
 
         public MainWindow()
         {
-            InitializeComponent();
-
             _snapshotService = new SnapshotService();
             _scanner = new HardwareScanner(_snapshotService);
             _optimizer = new OptimizerService(_snapshotService);
+
+            InitializeComponent();
+            _isInitialized = true;
 
             DataContext = _overview;
             ItemsDiagnosticList.ItemsSource = DisplayedDiagnostics;
@@ -94,7 +96,7 @@ namespace AMDAutoTuning
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
         {
-            if (sender is not RadioButton rb) return;
+            if (!_isInitialized || sender is not RadioButton rb) return;
 
             if (rb == TabDashboard) _activeTabKey = "DASHBOARD";
             else if (rb == TabOs) _activeTabKey = "OS";
@@ -108,6 +110,8 @@ namespace AMDAutoTuning
 
         private void RefreshTabFilter()
         {
+            if (!_isInitialized || ViewDiagnostics == null || ViewHistory == null || PanelHardwareOverview == null) return;
+
             if (_activeTabKey == "HISTORY")
             {
                 ViewDiagnostics.Visibility = Visibility.Collapsed;
