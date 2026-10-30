@@ -194,50 +194,88 @@ namespace AMDAutoTuning
         {
             if (sender is not Button btn || btn.Tag is not string actionKey) return;
 
+            // --- GUIDES (no message box, just modal) ---
+            switch (actionKey)
+            {
+                case "GUIDE_REBAR":
+                    ShowModal("Ativar Resizable BAR / SAM na BIOS MSI", GuideContent.GetGuide("GUIDE_REBAR"));
+                    return;
+                case "GUIDE_DISPLAYLINK":
+                    ShowModal("Conexão Otimizada dos Monitores na RX 9070 XT", GuideContent.GetGuide("GUIDE_DISPLAYLINK"));
+                    return;
+                case "GUIDE_CURVE_OPTIMIZER":
+                case "GUIDE_CPU_PROFILES":
+                    ShowModal("Tuning do Ryzen 5 7600X: Os 3 Perfis Definitivos", GuideContent.GetGuide("GUIDE_CPU_PROFILES"));
+                    return;
+                case "GUIDE_VBS":
+                    ShowModal("Impacto do VBS / Integridade de Memória em Jogos", GuideContent.GetGuide("GUIDE_VBS"));
+                    return;
+                case "GUIDE_RAM":
+                    ShowModal("Guia de Memória RAM DDR5 no AMD Zen 4", GuideContent.GetGuide("GUIDE_RAM"));
+                    return;
+            }
+
+            // --- APPLY OPERATIONS ---
+            (bool success, string message) result;
+
             switch (actionKey)
             {
                 case "APPLY_BALANCED_PLAN":
                     var curPlan = _allDiagnostics.FirstOrDefault(x => x.Id == "POWER_PLAN")?.CurrentValue ?? "Desempenho Máximo";
-                    var rPower = await Task.Run(() => _optimizer.ApplyBalancedPowerPlan(curPlan));
-                    AppendLog(rPower.message);
-                    MessageBox.Show(rPower.message, rPower.success ? "Sucesso" : "Erro", MessageBoxButton.OK, rPower.success ? MessageBoxImage.Information : MessageBoxImage.Error);
-                    await RunAuditAsync();
+                    result = await Task.Run(() => _optimizer.ApplyBalancedPowerPlan(curPlan));
                     break;
 
                 case "APPLY_PAGEFILE":
                     var curPage = _allDiagnostics.FirstOrDefault(x => x.Id == "PAGEFILE")?.CurrentValue ?? "16 4096";
-                    var rPage = await Task.Run(() => _optimizer.ApplySafePagefile(curPage, 8192));
-                    AppendLog(rPage.message);
-                    MessageBox.Show(rPage.message, rPage.success ? "Sucesso" : "Erro", MessageBoxButton.OK, rPage.success ? MessageBoxImage.Information : MessageBoxImage.Error);
-                    await RunAuditAsync();
+                    result = await Task.Run(() => _optimizer.ApplySafePagefile(curPage, 8192));
                     break;
 
                 case "APPLY_DISABLE_FAST_STARTUP":
-                    var rFast = await Task.Run(() => _optimizer.DisableFastStartup());
-                    AppendLog(rFast.message);
-                    MessageBox.Show(rFast.message, rFast.success ? "Sucesso" : "Erro", MessageBoxButton.OK, rFast.success ? MessageBoxImage.Information : MessageBoxImage.Error);
-                    await RunAuditAsync();
+                    result = await Task.Run(() => _optimizer.DisableFastStartup());
                     break;
 
                 case "APPLY_DISABLE_IOBIT":
-                    var rBloat = await Task.Run(() => _optimizer.DisableIObitBloat());
-                    AppendLog(rBloat.message);
-                    MessageBox.Show(rBloat.message, rBloat.success ? "Sucesso" : "Erro", MessageBoxButton.OK, rBloat.success ? MessageBoxImage.Information : MessageBoxImage.Error);
-                    await RunAuditAsync();
+                    result = await Task.Run(() => _optimizer.DisableIObitBloat());
                     break;
 
                 case "APPLY_CLEAN_STARTUP":
-                    var rClean = await Task.Run(() => _optimizer.CleanDuplicateStartup());
-                    AppendLog(rClean.message);
-                    MessageBox.Show(rClean.message, rClean.success ? "Sucesso" : "Erro", MessageBoxButton.OK, rClean.success ? MessageBoxImage.Information : MessageBoxImage.Error);
-                    await RunAuditAsync();
+                    result = await Task.Run(() => _optimizer.CleanDuplicateStartup());
                     break;
 
                 case "APPLY_TCP_TWEAKS":
-                    var rTcp = await Task.Run(() => _optimizer.ApplyTcpOptimizations());
-                    AppendLog(rTcp.message);
-                    MessageBox.Show(rTcp.message, rTcp.success ? "Sucesso" : "Erro", MessageBoxButton.OK, rTcp.success ? MessageBoxImage.Information : MessageBoxImage.Error);
-                    await RunAuditAsync();
+                    result = await Task.Run(() => _optimizer.ApplyTcpOptimizations());
+                    break;
+
+                case "APPLY_DISABLE_TELEMETRY":
+                    result = await Task.Run(() => _optimizer.DisableWindowsTelemetry());
+                    break;
+
+                case "APPLY_DISABLE_SYSMAIN":
+                    result = await Task.Run(() => _optimizer.DisableSysMain());
+                    break;
+
+                case "APPLY_DISABLE_DELIVERY_OPT":
+                    result = await Task.Run(() => _optimizer.DisableDeliveryOptimizationP2P());
+                    break;
+
+                case "APPLY_DISABLE_GAMEDVR":
+                    result = await Task.Run(() => _optimizer.DisableXboxGameDVR());
+                    break;
+
+                case "APPLY_OPTIMIZE_INDEXER":
+                    result = await Task.Run(() => _optimizer.OptimizeSearchIndexer());
+                    break;
+
+                case "APPLY_FIX_MEMORY_MANAGEMENT":
+                    result = await Task.Run(() => _optimizer.FixMemoryManagement());
+                    break;
+
+                case "APPLY_NETWORK_TWEAKS":
+                    result = await Task.Run(() => _optimizer.ApplyNetworkThrottlingTweaks());
+                    break;
+
+                case "APPLY_ENABLE_GAMEMODE_HAGS":
+                    result = await Task.Run(() => _optimizer.EnableGameModeAndHags());
                     break;
 
                 case "APPLY_ENABLE_TRIM":
@@ -247,26 +285,17 @@ namespace AMDAutoTuning
                         UseShellExecute = false
                     };
                     System.Diagnostics.Process.Start(psi)?.WaitForExit();
-                    AppendLog("Comando TRIM habilitado no Windows para todos os volumes NTFS e ReFS.");
-                    await RunAuditAsync();
+                    result = (true, "Comando TRIM habilitado no Windows para todos os volumes NTFS e ReFS.");
                     break;
 
-                case "GUIDE_REBAR":
-                    ShowModal("Ativar Resizable BAR / SAM na BIOS MSI", GuideContent.GetGuide("GUIDE_REBAR"));
-                    break;
-
-                case "GUIDE_DISPLAYLINK":
-                    ShowModal("Conexão Otimizada dos Monitores na RX 9070 XT", GuideContent.GetGuide("GUIDE_DISPLAYLINK"));
-                    break;
-
-                case "GUIDE_CURVE_OPTIMIZER":
-                    ShowModal("Tuning do Ryzen 5 7600X: Curve Optimizer & Eco Mode", GuideContent.GetGuide("GUIDE_CURVE_OPTIMIZER"));
-                    break;
-
-                case "GUIDE_RAM":
-                    ShowModal("Guia de Memória RAM DDR5 no AMD Zen 4", GuideContent.GetGuide("GUIDE_RAM"));
-                    break;
+                default:
+                    return;
             }
+
+            AppendLog(result.message);
+            MessageBox.Show(result.message, result.success ? "Sucesso" : "Erro", MessageBoxButton.OK,
+                result.success ? MessageBoxImage.Information : MessageBoxImage.Error);
+            await RunAuditAsync();
         }
 
         private async void RevertActionButton_Click(object sender, RoutedEventArgs e)
@@ -303,6 +332,38 @@ namespace AMDAutoTuning
 
                 case "REVERT_TCP":
                     res = await Task.Run(() => _optimizer.RevertTcpOptimizations());
+                    break;
+
+                case "REVERT_TELEMETRY":
+                    res = await Task.Run(() => _optimizer.RevertWindowsTelemetry());
+                    break;
+
+                case "REVERT_SYSMAIN":
+                    res = await Task.Run(() => _optimizer.RevertSysMain());
+                    break;
+
+                case "REVERT_DELIVERY_OPT":
+                    res = await Task.Run(() => _optimizer.RevertDeliveryOptimizationP2P());
+                    break;
+
+                case "REVERT_GAMEDVR":
+                    res = await Task.Run(() => _optimizer.RevertXboxGameDVR());
+                    break;
+
+                case "REVERT_INDEXER":
+                    res = await Task.Run(() => _optimizer.RevertSearchIndexer());
+                    break;
+
+                case "REVERT_MEMORY_MANAGEMENT":
+                    res = await Task.Run(() => _optimizer.RevertMemoryManagement());
+                    break;
+
+                case "REVERT_NETWORK_TWEAKS":
+                    res = await Task.Run(() => _optimizer.RevertNetworkThrottlingTweaks());
+                    break;
+
+                case "REVERT_GAMEMODE_HAGS":
+                    res = await Task.Run(() => _optimizer.RevertGameModeAndHags());
                     break;
             }
 
@@ -346,6 +407,14 @@ namespace AMDAutoTuning
                 _optimizer.RevertFastStartup();
                 _optimizer.RevertIObitBloat();
                 _optimizer.RevertTcpOptimizations();
+                _optimizer.RevertWindowsTelemetry();
+                _optimizer.RevertSysMain();
+                _optimizer.RevertDeliveryOptimizationP2P();
+                _optimizer.RevertXboxGameDVR();
+                _optimizer.RevertSearchIndexer();
+                _optimizer.RevertMemoryManagement();
+                _optimizer.RevertNetworkThrottlingTweaks();
+                _optimizer.RevertGameModeAndHags();
             });
 
             _snapshotService.Clear();

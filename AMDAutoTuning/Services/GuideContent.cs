@@ -75,6 +75,102 @@ OPÇÃO B: Direto na BIOS MSI (Definitivo e Permanente):
    • Curve Optimizer Magnitude: [20]
 5. Pressione [F10] para salvar e reiniciar.",
 
+                "GUIDE_CPU_PROFILES" => @"=======================================================
+GUIA DE TUNING: OS 3 PERFIS DEFINITIVOS DO RYZEN 5 7600X
+=======================================================
+
+O Ryzen 7600X de fábrica busca 95°C e 142W de PPT a todo custo.
+Escolha o perfil ideal para o seu tipo de uso:
+
+-------------------------------------------------------
+PERFIL 1 — GAMING SINGLE-CORE (MÁXIMO FPS COMPETITIVO)
+-------------------------------------------------------
+Foco: CS2, Valorant, simuladores, jogos com pico de 1 núcleo.
+Preparação: Requer sistema de arrefecimento robusto (air cooler 240mm ou water).
+
+Na BIOS MSI (DEL -> F7 -> OC -> AMD Overclocking -> PBO):
+  • Precision Boost Overdrive: [Advanced]
+  • PBO Limits: [Manual]
+  • PPT Limit [mW]: [130000]  (130W)
+  • TDC Limit [mA]: [95000]   (95A)
+  • EDC Limit [mA]: [150000]  (150A)
+  • CPU Boost Clock Override: [Enabled]
+  • Max CPU Boost Clock Override: [+200] MHz (+200 MHz no pico)
+  • Curve Optimizer Sign: [Negative]
+  • Curve Optimizer Magnitude: [15]  (Núcleos mais rápidos/estáveis)
+  • PBO Thermal Point: [85°C]
+
+No Windows: Plano de Energia Equilibrado, HAGS Ativado.
+
+-------------------------------------------------------
+PERFIL 2 — BALANCED SWEET SPOT (RECOMENDADO PARA 90%)
+-------------------------------------------------------
+Foco: Melhor equilíbrio entre temperatura baixa, ruído baixo e 100% do FPS.
+
+Na BIOS MSI (DEL -> F7 -> OC -> AMD Overclocking -> PBO):
+  • Precision Boost Overdrive: [Advanced]
+  • PBO Limits: [Manual]
+  • PPT Limit [mW]: [105000]  (105W)
+  • TDC Limit [mA]: [85000]   (85A)
+  • EDC Limit [mA]: [130000]  (130A)
+  • PBO Thermal Point: [85°C]
+  • Curve Optimizer: [All Cores]
+  • Curve Optimizer Sign: [Negative]
+  • Curve Optimizer Magnitude: [20]
+
+Resultado: Temperatura cai de 95°C para 68°C a 74°C, ruído das fans cai pela metade e o desempenho em jogos permanece praticamente idêntico ao de fábrica.
+
+-------------------------------------------------------
+PERFIL 3 — ECO MODE & WORKSTATION (SILÊNCIO ABSOLUTO)
+-------------------------------------------------------
+Foco: Trabalho contínuo, renderização, gabinetes compactos e eficiência.
+
+Na BIOS MSI (DEL -> F7 -> OC -> AMD Overclocking -> PBO):
+  • Precision Boost Overdrive: [Advanced]
+  • PBO Limits: [Manual]
+  • PPT Limit [mW]: [88000]   (88W - equivalente AMD TDP 65W)
+  • TDC Limit [mA]: [75000]   (75A)
+  • EDC Limit [mA]: [150000]  (150A)
+  • PBO Thermal Point: [75°C]
+  • Curve Optimizer: [All Cores]
+  • Curve Optimizer Sign: [Negative]
+  • Curve Optimizer Magnitude: [30]
+
+Resultado: Consumo da tomada cai cerca de 40%, a CPU opera entre 60°C e 68°C em estresse total, com queda inferior a 3% em multi-thread e menos de 1% em jogos.
+
+-------------------------------------------------------
+APLICAÇÃO VIA AMD RYZEN MASTER (Sem Reiniciar o PC)
+-------------------------------------------------------
+1. Abra o 'AMD Ryzen Master'.
+2. Selecione [Profile 1] ou [Basic View].
+3. Em [Control Mode], escolha [Precision Boost Overdrive].
+4. Ajuste PPT, TDC, EDC e o Curve Optimizer conforme o perfil desejado.
+5. Clique em [Apply & Test] para validação instantânea.",
+
+                "GUIDE_VBS" => @"=======================================================
+IMPACTO DO VBS / HVCI (INTEGRIDADE DE MEMÓRIA) EM JOGOS
+=======================================================
+
+O que é?
+A 'Integridade de Memória' (HVCI) é um recurso de segurança do Windows 11 que usa a virtualização (Hyper-V) para isolar drivers do kernel de malware.
+
+Qual é o impacto no AMD Ryzen 7000 (Zen 4)?
+Cada chamada de alocação no kernel gera uma transição (VM Exit) que esvazia a previsão de saltos (Branch Target Buffer) do processador Zen 4.
+Em jogos competitivos pesados (CS2, Valorant, Warzone, Cyberpunk), isso custa de 5% a 10% no 1% Low FPS e adiciona de 15 a 30 microssegundos de latência DPC.
+
+Devo desativar?
+• Para jogos competitivos e benchmarks de máxima performance: SIM, ganha-se FPS e reduz-se stutter.
+• Para segurança e proteção contra malwares sofisticados: mantenha ATIVADO.
+
+Como alternar (Requer Reinicialização do Windows):
+1. Abra o Menu Iniciar e digite: 'Segurança do Windows'.
+2. Clique em [Segurança do dispositivo] -> [Detalhes do isolamento do núcleo].
+3. Desmarque [Integridade de memória].
+4. Reinicie o computador.
+
+Alternativa Programática (Administrador):
+  reg add 'HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' /v Enabled /t REG_DWORD /d 0 /f",
+
                 "GUIDE_RAM" => @"=======================================================
 GUIA DE MEMÓRIA RAM DDR5 NO AMD ZEN 4 (AM5)
 =======================================================

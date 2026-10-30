@@ -7,6 +7,25 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.2.0] - 2026-10-30
+
+### Adicionado
+- **Aba SO expandida para 13 subsistemas auditáveis:**
+  - Telemetria (`DiagTrack` / `dmwappushservice`), SysMain (Superfetch em NVMe), P2P de Atualizações (DoSvc), Xbox GameDVR, Indexador WSearch, `LargeSystemCache`, `NetworkThrottlingIndex` / `SystemResponsiveness`, Game Mode & HAGS.
+  - Cada item conta com ação de otimização e chave de reversão individual.
+- **Aba CPU expandida com telemetria Zen 4 real:**
+  - Ranking de núcleos **CPPC Gold / Silver** lido do event log do kernel (`Microsoft-Windows-Kernel-Processor-Power` ID 55).
+  - Auditoria de **VBS / HVCI** (Integridade de Memória) com impacto estimado em 1% Low FPS.
+  - Leitura do **EPP** (Energy Performance Preference) via `powercfg`.
+- **3 Perfis de Tuning completos do Ryzen 7600X:** Gaming Single-Core (+200 MHz Boost Override), Balanced Sweet Spot (105W / 85°C) e Eco Mode Workstation (88W / 75°C), com passos para BIOS MSI e Ryzen Master.
+- **Auto-registro do certificado no primeiro boot elevado** (`App.xaml.cs`), garantindo banner azul de fornecedor verificado no UAC.
+- `AGENTS.md` com armadilhas arquiteturais, comandos de build e padrões de release.
+
+### Corrigido
+- Registro do certificado de assinatura em `LocalMachine\Root` e `LocalMachine\TrustedPublisher` (necessário porque o `consent.exe` do UAC ignora o escopo do usuário).
+
+---
+
 ## [1.1.2] - 2026-10-30
 
 ### Corrigido

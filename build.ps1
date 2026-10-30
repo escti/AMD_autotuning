@@ -61,8 +61,22 @@ if (-not $SkipSign -and (Test-Path $exePath)) {
     try {
         $tempCer = Join-Path $env:TEMP "eff5_codesign.cer"
         $cert | Export-Certificate -FilePath $tempCer -Force | Out-Null
+
+        # User stores (presentation & local validation)
         certutil -addstore -user TrustedPublisher $tempCer | Out-Null
         certutil -addstore -f -user Root $tempCer | Out-Null
+
+        # LocalMachine stores (REQUIRED by UAC / consent.exe validation)
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if ($isAdmin) {
+            certutil -addstore -f Root $tempCer | Out-Null
+            certutil -addstore -f TrustedPublisher $tempCer | Out-Null
+            Write-Host "Certificado registrado em LocalMachine\Root e LocalMachine\TrustedPublisher (UAC verificado)." -ForegroundColor Green
+        } else {
+            Write-Host "AVISO: Execute o build.ps1 como Administrador para registrar o certificado em LocalMachine (UAC azul)." -ForegroundColor Yellow
+            Write-Host "O proprio aplicativo faz esse registro automaticamente no primeiro boot elevado." -ForegroundColor Gray
+        }
+
         Remove-Item $tempCer -Force -ErrorAction SilentlyContinue
     } catch { }
 

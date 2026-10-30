@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Management;
+using System.Text.RegularExpressions;
+using System.Xml;
 using AMDAutoTuning.Models;
 using Microsoft.Win32;
 
@@ -111,13 +114,24 @@ namespace AMDAutoTuning.Services
             items.Add(CheckGpuPcieLink());
 
             // --- CATEGORY: PROCESSADOR & RAM ---
+            items.Add(CheckRyzenCppcRanking());
             items.Add(CheckCpuTuningOpportunity());
+            items.Add(CheckVbsHvci());
+            items.Add(CheckEppPreference());
             items.Add(CheckRamExpoProfile());
 
             // --- CATEGORY: SISTEMA OPERACIONAL & LATÊNCIA ---
             items.Add(CheckPowerPlan());
             items.Add(CheckPagefile());
             items.Add(CheckFastStartup());
+            items.Add(CheckWindowsTelemetry());
+            items.Add(CheckSysMain());
+            items.Add(CheckDeliveryOptimization());
+            items.Add(CheckXboxGameDVR());
+            items.Add(CheckSearchIndexer());
+            items.Add(CheckMemoryManagementTweaks());
+            items.Add(CheckNetworkThrottling());
+            items.Add(CheckGameModeAndHags());
             items.Add(CheckBloatware());
             items.Add(CheckStartupDuplicates());
             items.Add(CheckNetworkTcp());
@@ -130,14 +144,18 @@ namespace AMDAutoTuning.Services
             int penalties = 0;
             foreach (var item in items)
             {
-                if (item.Severity == DiagnosticSeverity.Critical) penalties += 15;
-                else if (item.Severity == DiagnosticSeverity.Warning) penalties += 8;
-                else if (item.Severity == DiagnosticSeverity.Info) penalties += 2;
+                if (item.Severity == DiagnosticSeverity.Critical) penalties += 12;
+                else if (item.Severity == DiagnosticSeverity.Warning) penalties += 5;
+                else if (item.Severity == DiagnosticSeverity.Info) penalties += 1;
             }
 
             int healthScore = Math.Max(10, 100 - penalties);
             return (items, healthScore);
         }
+
+        // ====================================================================
+        // GPU & MONITORS CHECKS
+        // ====================================================================
 
         private DiagnosticItem CheckResizableBar()
         {
@@ -318,22 +336,202 @@ namespace AMDAutoTuning.Services
             };
         }
 
+        // ====================================================================
+        // CPU & RAM CHECKS
+        // ====================================================================
+
+        private DiagnosticItem CheckRyzenCppcRanking()
+        {
+            var rankings = new List<(int core, int perf)>();
+            try
+            {
+                string query = "*[System[Provider[@Name='Microsoft-Windows-Kernel-Processor-Power'] and (EventID=55)]]";
+                var logQuery = new EventLogQuery("System", PathType.LogName, query) { ReverseDirection = true };
+                using var reader = new EventLogReader(logQuery);
+                var seen = new HashSet<int>();
+
+                for (EventRecord record = reader.ReadEvent(); record != null && seen.Count < Environment.ProcessorCount; record = reader.ReadEvent())
+                {
+                    using (record)
+                    {
+                        var xml = record.ToXml();
+                        var doc = new XmlDocument();
+                        doc.LoadXml(xml);
+                        var ns = new XmlNamespaceManager(doc.NameTable);
+                        ns.AddNamespace("e", "http://schemas.microsoft.com/win/2004/08/events/event");
+
+                        var numNode = doc.SelectSingleNode("//e:Data[@Name='Number']", ns);
+                        var maxNode = doc.SelectSingleNode("//e:Data[@Name='MaximumPerformancePercent']", ns);
+                        if (numNode != null && maxNode != null && int.TryParse(numNode.InnerText, out int num) && !seen.Contains(num))
+                        {
+                            seen.Add(num);
+                            int perf = int.Parse(maxNode.InnerText);
+                            rankings.Add((num, perf));
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "CPU_CPPC_CORES",
+                Title = "Classificação de Núcleos AMD CPPC (Gold & Silver Cores)",
+                Category = "Processador / Arquitetura Zen 4",
+                CategoryKey = "CPU_RAM",
+                RecommendedValue = "Agendamento CPPC ativo no Windows 11"
+            };
+
+            if (rankings.Count > 0)
+            {
+                var ordered = rankings.OrderByDescending(r => r.perf).ToList();
+                int maxPerf = ordered[0].perf;
+                int secondPerf = ordered.Count > 1 ? ordered.Skip(1).First().perf : maxPerf;
+
+                var goldCores = ordered.Where(r => r.perf == maxPerf).Select(r => $"Núcleo {r.core} ⭐ ({r.perf}%)");
+                var silverCores = ordered.Where(r => r.perf == secondPerf && r.perf != maxPerf).Select(r => $"Núcleo {r.core} ✨ ({r.perf}%)");
+
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = $"Melhores Núcleos: {string.Join(", ", goldCores)}{(silverCores.Any() ? $", {string.Join(", ", silverCores)}" : "")}";
+                item.Description = "O kernel do Windows 11 identificou os núcleos de melhor silício do seu Ryzen 7600X. Jogos e tarefas de alta prioridade são direcionados primariamente a eles para atingir o boost máximo sustentado.";
+                item.HasAction = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Info;
+                item.CurrentValue = "Driver AMD PPM ativo";
+                item.Description = "Agendamento colaborativo de núcleos habilitado pelo driver de chipset AMD.";
+                item.HasAction = false;
+            }
+
+            return item;
+        }
+
         private DiagnosticItem CheckCpuTuningOpportunity()
         {
             return new DiagnosticItem
             {
                 Id = "CPU_TUNING",
-                Title = "Tuning da CPU: Curve Optimizer & Eco Mode",
+                Title = "Perfis de Tuning PBO & Curve Optimizer (Ryzen 7600X)",
                 Category = "Processador / Eficiência",
                 CategoryKey = "CPU_RAM",
                 Severity = DiagnosticSeverity.Info,
                 CurrentValue = "Padrão de Fábrica (105W TDP / 142W PPT / TjMax 95°C)",
-                RecommendedValue = "Curve Optimizer -20 all-core + PPT 88W (-15°C a -20°C)",
-                Description = "O Ryzen 7600X opera até 20°C mais frio mantendo clocks máximos de 5.3 GHz com um undervolt inteligente no Ryzen Master ou na BIOS da MSI.",
+                RecommendedValue = "3 Perfis Disponíveis: Gaming Boost, Balanced Sweet Spot ou Eco Mode",
+                Description = "Escolha o perfil ideal: máximo FPS competitivo (+200MHz), ponto de equilíbrio térmico (85°C / 105W) ou silêncio absoluto (88W / 75°C).",
                 HasAction = true,
-                ActionKey = "GUIDE_CURVE_OPTIMIZER",
-                ActionLabel = "Ver Presets Recomendados"
+                ActionKey = "GUIDE_CPU_PROFILES",
+                ActionLabel = "Ver os 3 Perfis de Tuning"
             };
+        }
+
+        private DiagnosticItem CheckVbsHvci()
+        {
+            bool vbsRunning = false;
+            bool hvciEnabled = false;
+
+            try
+            {
+                using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity");
+                if (key != null)
+                {
+                    var val = key.GetValue("Enabled");
+                    hvciEnabled = val != null && Convert.ToInt32(val) == 1;
+                }
+
+                using var searcher = new ManagementObjectSearcher(@"root\Microsoft\Windows\DeviceGuard", "SELECT VirtualizationBasedSecurityStatus FROM Win32_DeviceGuard");
+                foreach (var obj in searcher.Get())
+                {
+                    vbsRunning = Convert.ToInt32(obj["VirtualizationBasedSecurityStatus"]) == 2;
+                    break;
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "CPU_VBS_HVCI",
+                Title = "Segurança Baseada em Virtualização (VBS) e Integridade de Memória (HVCI)",
+                Category = "Processador / Latência de Jogos",
+                CategoryKey = "CPU_RAM",
+                RecommendedValue = "Ativo (Segurança) vs Desativado (+5-10% FPS em jogos)"
+            };
+
+            if (hvciEnabled || vbsRunning)
+            {
+                item.Severity = DiagnosticSeverity.Info;
+                item.CurrentValue = "Ativado (Segurança de Hypervisor Ativa)";
+                item.Description = "A Integridade de Memória (HVCI) protege o kernel, mas no Zen 4 gera VM exits que causam esvaziamento da previsão de saltos (BTB), custando entre 5% e 10% no 1% Low FPS em jogos competitivos.";
+                item.HasAction = true;
+                item.ActionKey = "GUIDE_VBS";
+                item.ActionLabel = "Entender Impacto em Jogos";
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Desativado (Modo Desempenho Máximo / Menor Latência)";
+                item.Description = "Virtualização do kernel desativada: zero overhead de VM exits nos núcleos do Ryzen e menor latência DPC.";
+                item.HasAction = false;
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckEppPreference()
+        {
+            int epp = 33;
+            try
+            {
+                var proc = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "powercfg",
+                        Arguments = "/query SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 36687f9e-e3a5-4dbf-b1dc-15eb381c6863",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                proc.Start();
+                string outStr = proc.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+
+                var match = Regex.Match(outStr, @"0x([0-9a-fA-F]+)");
+                if (match.Success)
+                {
+                    epp = Convert.ToInt32(match.Groups[1].Value, 16);
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "CPU_EPP",
+                Title = "Preferência de Energia do Processador (EPP)",
+                Category = "Processador / Responsividade",
+                CategoryKey = "CPU_RAM",
+                RecommendedValue = "33% (Equilibrado / Permite C-States e Boost Total no Zen 4)"
+            };
+
+            if (epp == 0)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = "0% (Máximo Desempenho Agressivo)";
+                item.Description = "EPP em 0% impede núcleos ociosos de dormirem em C6, aquecendo o processador sem necessidade e limitando a folga térmica para boost single-core máximo (5.35 GHz+).";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_BALANCED_PLAN";
+                item.ActionLabel = "Ajustar para EPP 33%";
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = $"{epp}% (Equilibrado / Dinâmico)";
+                item.Description = "O processador alterna instantaneamente entre repouso profundo e frequências de boost com eficiência térmica máxima.";
+                item.HasAction = false;
+            }
+
+            return item;
         }
 
         private DiagnosticItem CheckRamExpoProfile()
@@ -353,6 +551,10 @@ namespace AMDAutoTuning.Services
                 ActionLabel = "Ver Dicas de Memória AM5"
             };
         }
+
+        // ====================================================================
+        // OS & LATENCY CHECKS
+        // ====================================================================
 
         private DiagnosticItem CheckPowerPlan()
         {
@@ -501,6 +703,379 @@ namespace AMDAutoTuning.Services
                 item.HasAction = false;
                 item.CanRevert = true;
                 item.RevertKey = "REVERT_FAST_STARTUP";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckWindowsTelemetry()
+        {
+            bool diagTrackRunning = false;
+            try
+            {
+                using var dtKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\DiagTrack");
+                int dtStart = Convert.ToInt32(dtKey?.GetValue("Start", 2));
+                diagTrackRunning = (dtStart != 4);
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_TELEMETRY",
+                Title = "Telemetria e Diagnósticos em Segundo Plano (DiagTrack)",
+                Category = "Sistema / Telemetria",
+                CategoryKey = "OS",
+                RecommendedValue = "Desativado (Elimina I/O contínuo de traces e acordamento de núcleos)"
+            };
+
+            if (diagTrackRunning)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = "Ativado (Serviço DiagTrack gravando traces em disco)";
+                item.Description = "O DiagTrack e o dmwappushservice coletam eventos do sistema (ETW), geram arquivos de log em C:\\ProgramData e acordam núcleos do Ryzen do estado C6 o tempo todo.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_DISABLE_TELEMETRY";
+                item.ActionLabel = "Desativar Telemetria";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Desativado (Sem traces de diagnóstico em segundo plano)";
+                item.Description = "Serviços de telemetria desativados: menor consumo de CPU e sem escrita contínua de traces em disco.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_TELEMETRY";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckSysMain()
+        {
+            bool isRunning = false;
+            try
+            {
+                using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\SysMain");
+                int start = Convert.ToInt32(key?.GetValue("Start", 2));
+                isRunning = (start != 4);
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_SYSMAIN",
+                Title = "Serviço SysMain / Superfetch (Em SSDs NVMe)",
+                Category = "Sistema / Armazenamento e RAM",
+                CategoryKey = "OS",
+                RecommendedValue = "Desativado (Em SSDs NVMe, elimina micro-travamentos por purga de cache Standby)"
+            };
+
+            if (isRunning)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = "Ativado (Pré-carregamento dinâmico em RAM)";
+                item.Description = "O SysMain pré-carrega arquivos na memória 'Standby'. Em SSDs NVMe rápidos, ele é dispensável e provoca stutters durante jogos pesados quando o Windows precisa esvaziar o cache repentinamente.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_DISABLE_SYSMAIN";
+                item.ActionLabel = "Desativar SysMain";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Desativado";
+                item.Description = "Memória física livre para alocação direta dos jogos sem sobrecarga de compressão ou purga da lista de espera.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_SYSMAIN";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckDeliveryOptimization()
+        {
+            int downloadMode = 3;
+            bool isP2PActive = true;
+
+            try
+            {
+                using var polKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization");
+                if (polKey?.GetValue("DODownloadMode") != null)
+                {
+                    downloadMode = Convert.ToInt32(polKey.GetValue("DODownloadMode"));
+                    if (downloadMode == 0 || downloadMode == 99 || downloadMode == 100)
+                    {
+                        isP2PActive = false;
+                    }
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_DELIVERY_OPTIMIZATION",
+                Title = "Compartilhamento P2P de Atualizações (DoSvc)",
+                Category = "Sistema / Rede e Latência",
+                CategoryKey = "OS",
+                RecommendedValue = "HTTP Direto (DODownloadMode = 0: Sem envio de pacotes em segundo plano)"
+            };
+
+            if (isP2PActive)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = "Ativado (P2P de atualizações ativo em segundo plano)";
+                item.Description = "O Windows compartilha atualizações com outros computadores via P2P (como um torrent). Esse upload em segundo plano satura a largura de banda de saída, gerando picos de ping em jogos online.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_DISABLE_DELIVERY_OPT";
+                item.ActionLabel = "Desativar P2P de Atualizações";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Otimizado (Apenas Download HTTP Direto)";
+                item.Description = "Downloads são feitos diretamente da CDN da Microsoft, sem hospedar ou semear arquivos para outros computadores na internet.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_DELIVERY_OPT";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckXboxGameDVR()
+        {
+            bool isRecordingActive = false;
+            try
+            {
+                using var configStore = Registry.CurrentUser.OpenSubKey(@"System\GameConfigStore");
+                int gameDvrEnabled = Convert.ToInt32(configStore?.GetValue("GameDVR_Enabled", 1));
+                using var gameDvrKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR");
+                int historicalCapture = Convert.ToInt32(gameDvrKey?.GetValue("HistoricalCaptureEnabled", 1));
+
+                if (gameDvrEnabled == 1 || historicalCapture == 1)
+                {
+                    isRecordingActive = true;
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_XBOX_GAMEDVR",
+                Title = "Gravação em Segundo Plano do Xbox GameDVR",
+                Category = "Jogos / Otimização de GPU",
+                CategoryKey = "OS",
+                RecommendedValue = "Desativado (Libera VRAM e codificador VCN da Radeon)"
+            };
+
+            if (isRecordingActive)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = "Ativado (Captura contínua de vídeo ativa)";
+                item.Description = "O Windows grava continuamente seu gameplay em segundo plano, desperdiçando VRAM, ciclos do codificador de vídeo da Radeon e gerando escritas ininterruptas no SSD.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_DISABLE_GAMEDVR";
+                item.ActionLabel = "Desativar Captura GameDVR";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Desativado";
+                item.Description = "Codificador VCN livre e memória de vídeo economizada. Para clipes, use o AMD Software: Adrenalin (Instant Replay).";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_GAMEDVR";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckSearchIndexer()
+        {
+            int startMode = 2;
+            try
+            {
+                using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\WSearch");
+                startMode = Convert.ToInt32(key?.GetValue("Start", 2));
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_SEARCH_INDEXER",
+                Title = "Indexador de Arquivos do Windows (WSearch)",
+                Category = "Sistema / Desempenho de Disco",
+                CategoryKey = "OS",
+                RecommendedValue = "Manual ou Desativado (Evita indexação ininterrupta durante gameplay e updates de jogos)"
+            };
+
+            if (startMode == 2)
+            {
+                item.Severity = DiagnosticSeverity.Info;
+                item.CurrentValue = "Automático (Ativo em tempo real)";
+                item.Description = "O indexador escaneia continuamente modificações de arquivos em disco para o banco Windows.edb. Em SSDs NVMe rápidos, ele consome ciclos de CPU e IOPS de gravação desnecessariamente durante compilações e updates de jogos.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_OPTIMIZE_INDEXER";
+                item.ActionLabel = "Configurar Indexador para Manual";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = startMode == 3 ? "Manual (Sob Demanda)" : "Desativado";
+                item.Description = "Sem varreduras contínuas em segundo plano no NVMe. Menor overhead nos núcleos de CPU.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_INDEXER";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckMemoryManagementTweaks()
+        {
+            int largeSystemCache = 0;
+            try
+            {
+                using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management");
+                largeSystemCache = Convert.ToInt32(key?.GetValue("LargeSystemCache", 0));
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_MEMORY_MANAGEMENT",
+                Title = "Políticas de Memória do Kernel (LargeSystemCache)",
+                Category = "Sistema / Estabilidade de RAM",
+                CategoryKey = "OS",
+                RecommendedValue = "LargeSystemCache = 0 (Padrão de Sistema Cliente; evita crashes de driver gráfico)"
+            };
+
+            if (largeSystemCache == 1)
+            {
+                item.Severity = DiagnosticSeverity.Critical;
+                item.CurrentValue = "LargeSystemCache = 1 (Configuração Nociva Detectada)";
+                item.Description = "O registro está configurado para priorizar o cache de arquivos de servidor sobre os aplicativos. Isso restringe o acesso de memória à GPU Radeon e gera crashes como DXGI_ERROR_DEVICE_REMOVED em jogos DirectX 12.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_FIX_MEMORY_MANAGEMENT";
+                item.ActionLabel = "Corrigir para Padrão Estável (0)";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "LargeSystemCache = 0 (Estável para Jogos e Render)";
+                item.Description = "Espaço de trabalho de memória alocado prioritariamente para jogos e drivers gráficos.";
+                item.HasAction = false;
+                item.CanRevert = false;
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckNetworkThrottling()
+        {
+            uint networkThrottling = 10;
+            int systemResponsiveness = 20;
+
+            try
+            {
+                using var sysProfile = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile");
+                if (sysProfile != null)
+                {
+                    var netVal = sysProfile.GetValue("NetworkThrottlingIndex");
+                    if (netVal != null) networkThrottling = Convert.ToUInt32(netVal);
+
+                    var respVal = sysProfile.GetValue("SystemResponsiveness");
+                    if (respVal != null) systemResponsiveness = Convert.ToInt32(respVal);
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_NETWORK_THROTTLING",
+                Title = "Limitação de Rede Multimídia e Latência DPC",
+                Category = "Sistema / Latência DPC",
+                CategoryKey = "OS",
+                RecommendedValue = "Throttling Desativado (0xFFFFFFFF) e Responsividade Máxima (0)"
+            };
+
+            if (networkThrottling != 0xFFFFFFFF || systemResponsiveness != 0)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = $"Throttling: {networkThrottling}, Responsividade Reservada: {systemResponsiveness}%";
+                item.Description = "O Windows limita artificialmente o throughput de pacotes de rede se houver áudio tocando (ex: Discord/Spotify) e reserva 20% da CPU para background. Isso gera micro-descartes de pacotes e jitter em jogos multiplayer.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_NETWORK_TWEAKS";
+                item.ActionLabel = "Otimizar Latência Multimídia";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Otimizado (Sem limitação de pacotes / 100% de prioridade)";
+                item.Description = "Pilha de rede do Windows sem estrangulamento de pacotes UDP/TCP durante execução de áudio.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_NETWORK_TWEAKS";
+            }
+
+            return item;
+        }
+
+        private DiagnosticItem CheckGameModeAndHags()
+        {
+            int gameMode = 1;
+            int hagsMode = 2;
+
+            try
+            {
+                using var gmKey = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\GameBar");
+                if (gmKey?.GetValue("AllowAutoGameMode") != null)
+                {
+                    gameMode = Convert.ToInt32(gmKey.GetValue("AllowAutoGameMode"));
+                }
+
+                using var hagsKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\GraphicsDrivers");
+                if (hagsKey?.GetValue("HwSchMode") != null)
+                {
+                    hagsMode = Convert.ToInt32(hagsKey.GetValue("HwSchMode"));
+                }
+            }
+            catch { }
+
+            var item = new DiagnosticItem
+            {
+                Id = "OS_GAMEMODE_HAGS",
+                Title = "Modo de Jogo e Agendamento de GPU (HAGS)",
+                Category = "Jogos / Otimização de GPU",
+                CategoryKey = "OS",
+                RecommendedValue = "Ambos Ativados (GameMode = 1 e HAGS = 2 para AMD CPPC e AFMF 2)"
+            };
+
+            if (gameMode != 1 || hagsMode != 2)
+            {
+                item.Severity = DiagnosticSeverity.Warning;
+                item.CurrentValue = $"Game Mode: {(gameMode == 1 ? "Ativado" : "Desativado")} | HAGS: {(hagsMode == 2 ? "Ativado" : "Desativado")}";
+                item.Description = "O Modo de Jogo é essencial para o agendamento correto de threads da AMD (CPPC), e o HAGS é requerido para máxima consistência de frame times e tecnologias como AMD FSR 3 / AFMF 2 na placa Radeon.";
+                item.HasAction = true;
+                item.ActionKey = "APPLY_ENABLE_GAMEMODE_HAGS";
+                item.ActionLabel = "Ativar Game Mode & HAGS";
+                item.CanRevert = false;
+            }
+            else
+            {
+                item.Severity = DiagnosticSeverity.Ok;
+                item.CurrentValue = "Ativados (Game Mode e HAGS operando)";
+                item.Description = "Agendamento de threads AMD otimizado e agendamento de GPU por hardware habilitado.";
+                item.HasAction = false;
+                item.CanRevert = true;
+                item.RevertKey = "REVERT_GAMEMODE_HAGS";
             }
 
             return item;
@@ -660,6 +1235,10 @@ namespace AMDAutoTuning.Services
 
             return item;
         }
+
+        // ====================================================================
+        // DRIVERS & BIOS CHECKS
+        // ====================================================================
 
         private DiagnosticItem CheckTrimStatus()
         {

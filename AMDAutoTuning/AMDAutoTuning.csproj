@@ -9,9 +9,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>AMDAutoTuning</AssemblyName>
     <RootNamespace>AMDAutoTuning</RootNamespace>
-    <Version>1.1.0</Version>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
+    <Version>1.2.0</Version>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
     <Company>EFF5 Automações Inteligentes</Company>
     <Authors>EFF5 Automações Inteligentes</Authors>
     <Product>AMD AutoTuning &amp; Optimizer</Product>
