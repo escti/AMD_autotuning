@@ -48,6 +48,25 @@ Instruções críticas e não óbvias para agentes que trabalham neste repositó
 - Qualquer tweak que altere registro do Windows ou serviços **DEVE** gravar o estado anterior via `_snapshotService.Record(...)` antes da modificação.
 - O arquivo de log do usuário fica persistido em `%APPDATA%\AMDAutoTuning\tweaks_history.json`.
 
+### 5. Ordenação dos Achados (`RefreshTabFilter`)
+- A ordem de exibição é **por criticidade**, não por ordem de varredura: `OrderByDescending((int)Severity).ThenBy(Title)`.
+  O enum `DiagnosticSeverity` já declara `Ok=0 … Critical=3`, então **não reordene o enum** — a ordenação depende disso.
+- Qualquer novo `DiagnosticItem` criado no `HardwareScanner` entra automaticamente na ordem certa; não é preciso mexer no XAML.
+- Se um dia for necessário agrupar por categoria, use `ThenBy(x => x.Category)` **entre** severidade e título.
+
+### 6. Verificação de Dependências (`DependencyChecker`)
+- `CheckAll()` roda em thread de fundo e devolve **uma lista nova**; a UI copia os valores para os itens já existentes em `RefreshDependenciesAsync()`. Isso evita `NotSupportedException` de `ObservableCollection` cross-thread.
+- **Nunca** mutar um `DependencyItem` já data-bound a partir de thread de fundo (por isso `Repair()` não toca no item; o caller revalida na thread de UI).
+- Uma dependência que não pode ser inspecionada vira `Missing` com a mensagem do erro — `CheckItem` engole exceções de propósito, para nunca derrubar o boot.
+- **Instalação via winget valida por re-detecção, não por exit code.** O código de saída do winget é ambíguo (pacote já instalado, fonte desatualizada e falha real produzem códigos diferentes do esperado); o app relê o estado real do sistema depois de instalar.
+- Dependências `Required` ausentes **bloqueiam** a auditoria (abre o overlay); `Recommended` e `Optional` apenas geram badge.
+- Flag `--deps` força a abertura da tela de pré-requisitos — útil para validar a UI sem desinstalar nada.
+
+### 7. `build.ps1` falha se o app estiver aberto
+- O executável em execução trava `dist\AMDAutoTuning.exe`; o `Remove-Item -Recurse` do build morria com "Acesso negado" sem explicar nada.
+- O script agora detecta `Get-Process -Name AMDAutoTuning` e aborta com mensagem clara. Se aparecer esse erro, feche a janela do app.
+- Shell não elevado **não consegue** encerrar o app (que roda elevado por manifest): `Stop-Process` e `WM_CLOSE` falham com acesso negado. Peça ao usuário para fechar a janela.
+
 ---
 
 ## 📚 Skills do Projeto (`.opencode/skills/`)

@@ -9,7 +9,38 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+_(sem alterações pendentes)_
+
+---
+
+## [1.3.0] - 2026-10-31
+
 ### Adicionado
+- **Tela de Pré-requisitos (`DependencyOverlay`) com verificação de 6 dependências** antes da auditoria:
+  | Dependência | Classe | Detecção |
+  | --- | --- | --- |
+  | WMI | Obrigatória | consulta real ao `Win32_OperatingSystem` (prova funcional, não só serviço) |
+  | Visual C++ 2015–2022 Redistributable (x64) | Obrigatória | `HKLM\...\VC\Runtimes\X64` → `Installed` + versão |
+  | Driver AMD Radeon (Adrenalin) | Obrigatória | `Win32_VideoController` com vendor AMD e versão do driver |
+  | winget | Recomendada | PATH → alias do usuário → pacote `Microsoft.DesktopAppInstaller_*` |
+  | Driver de Chipset AMD (AM5) | Recomendada | serviço `amdppm` ou `System32\drivers\amdppm.sys` |
+  | AMD Ryzen Master | Opcional | chave de desinstalação + `Program Files\AMD\RyzenMaster` |
+- **Instalação automatizada via winget** (botão individual e "Instalar Todas as Ausentes"), com log em tempo real no console do app.
+- **Download oficial em 1 clique** por dependência, com URLs da Microsoft e da AMD.
+- **Reparo automático do WMI** (`net start winmgmt`) e instruções de `winmgmt /verifyrepository` quando falha.
+- **Badge de pendências no cabeçalho** (contador vermelho no botão *Pré-requisitos*).
+- **Flag `--deps`**: abre a tela de pré-requisitos direto, mesmo com tudo instalado (útil para conferência rápida).
+- **`Models/DependencyItem.cs`** e **`Services/DependencyChecker.cs`**, isolados da UI e reaproveitáveis.
+
+### Modificado
+- **Achados ordenados por criticidade** em todas as abas e no Painel Geral: 🔴 Crítico → 🟠 Atenção → 🔵 Info → 🟢 Otimizado, com desempate alfabético estável. O que exige ação agora aparece sempre no topo.
+- **Badge de versão no título da janela** passou a derivar do assembly (`AppVersionLabel`), eliminando a divergência que mantinha `v1.1` fixo no XAML.
+
+### Corrigido
+- **`build.ps1` falhava com "Acesso negado" sem explicação** quando o app estava aberto (o `.exe` de `dist\` fica travado em execução). Agora detecta o processo e informa o motivo real antes de tentar apagar.
+- **`sign-exe.ps1` (skill `windows-authenticode`) rejeitava `-PublisherCodePoints` via `-File`:** o PowerShell não converte a string `69,70,70` em `int[]`. O parâmetro virou `[string[]]` com split interno, aceitando tanto array quanto lista única — e a armadilha ficou documentada na skill.
+
+### Documentação (pendências da versão anterior, agora liberadas)
 - **`BUGS.md` — catálogo de bugs e problemas conhecidos:**
   - Escala de gravidade P0–P3 (P0 automático para qualquer alteração de registro/serviço sem snapshot no ledger).
   - Seções *Abertos*, *Em análise / Bloqueados* e *Resolvidos*, com tabela de resumo.
@@ -17,9 +48,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   - Fluxo explícito: bug corrigido migra para *Resolvidos* **e** para o `### Corrigido` do `CHANGELOG.md`.
 - **Seção "Onde cada tipo de informação vive" no `AGENTS.md`**, eliminando a ambiguidade entre backlog, changelog e armadilhas técnicas.
 - **Item `BUGS.md` e novo checklist na regra Doc-First**, para que nenhum achado de teste fique apenas na conversa.
-
-### Corrigido
-- **Badge de versão do `README.md`** permanecia em `v1.1.0` enquanto o projeto já estava em `1.2.2`; agora reflete a versão real.
+- **Badge de versão do `README.md`** corrigido (estava em `v1.1.0` com o projeto em `1.2.2`).
 
 ---
 

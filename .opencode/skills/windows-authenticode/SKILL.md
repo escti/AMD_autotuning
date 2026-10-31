@@ -49,6 +49,12 @@ Regras obrigatorias:
 
 Ver `scripts/sign-exe.ps1` para a implementacao de referencia (cria, valida e assina).
 
+> **Armadilha do `-File`:** o PowerShell nao converte a string `69,70,70` para
+> `int[]` quando o script e chamado com `powershell -File script.ps1 -PublisherCodePoints 69,70,70`
+> (o interpretador entrega um unico argumento de texto). O script de referencia
+> declara o parametro como `[string[]]` e faz o split interno, aceitando tanto o
+> array quanto a lista unica. Se for editar, preserve esse comportamento.
+
 ## 3. Armadilha numero 2: console mentiroso
 
 O console do PowerShell 5.1 exibe `Automa????es` mesmo quando os bytes estao corretos

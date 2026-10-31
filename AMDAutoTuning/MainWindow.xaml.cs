@@ -16,13 +16,20 @@ namespace AMDAutoTuning
         private readonly SnapshotService _snapshotService;
         private readonly HardwareScanner _scanner;
         private readonly OptimizerService _optimizer;
+        private readonly DependencyChecker _dependencyChecker = new();
 
         private HardwareOverview _overview = new();
         private List<DiagnosticItem> _allDiagnostics = new();
         private string _activeTabKey = "DASHBOARD";
         private bool _isInitialized = false;
+        private bool _auditStarted = false;
 
         public ObservableCollection<DiagnosticItem> DisplayedDiagnostics { get; } = new();
+        public ObservableCollection<DependencyItem> DependencyItems { get; } = new();
+
+        /// <summary>Versao exibida no titulo, derivada do assembly (nunca fica dessincronizada).</summary>
+        public string AppVersionLabel { get; } =
+            "EFF5 Edition v" + (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0");
         public ObservableCollection<TweakSnapshot> DisplayedHistory { get; } = new();
 
         public MainWindow()
@@ -37,12 +44,243 @@ namespace AMDAutoTuning
             DataContext = _overview;
             ItemsDiagnosticList.ItemsSource = DisplayedDiagnostics;
             ItemsHistoryList.ItemsSource = DisplayedHistory;
+            ItemsDependencyList.ItemsSource = DependencyItems;
 
-            Loaded += async (s, e) => await RunAuditAsync();
+            Loaded += async (s, e) => await InitializeAsync();
+        }
+
+        /// <summary>
+        /// Fluxo de boot: verifica dependencias antes de auditar. Se faltar alguma
+        /// dependencia OBRIGATORIA, abre a tela de pre-requisitos e aguarda o usuario.
+        /// </summary>
+        private async Task InitializeAsync()
+        {
+            await RefreshDependenciesAsync();
+
+            // Flag de diagnóstico: "AMDAutoTuning.exe --deps" abre a tela de
+            // pré-requisitos imediatamente, mesmo com tudo instalado.
+            bool forcePreflight = Environment.GetCommandLineArgs()
+                .Any(a => a.Equals("--deps", StringComparison.OrdinalIgnoreCase));
+
+            if (forcePreflight)
+            {
+                DependencyOverlay.Visibility = Visibility.Visible;
+                AppendLog("Tela de pré-requisitos aberta por solicitação (--deps).");
+            }
+
+            if (DependencyItems.Any(x => x.IsBlocking))
+            {
+                AppendLog("Pré-requisitos obrigatórios ausentes. Abrindo tela de dependências.");
+                DependencyOverlay.Visibility = Visibility.Visible;
+                return;
+            }
+
+            await RunAuditAsync();
+        }
+
+        // ====================================================================
+        // PRE-REQUISITOS / DEPENDENCIAS
+        // ====================================================================
+
+        /// <summary>Revalida as dependencias e atualiza os itens existentes (preserva bindings e scroll).</summary>
+        private async Task RefreshDependenciesAsync()
+        {
+            TxtDependencySummary.Text = "Verificando dependências do sistema...";
+
+            List<DependencyItem> fresh = await Task.Run(() => _dependencyChecker.CheckAll());
+
+            if (DependencyItems.Count == 0)
+            {
+                foreach (var item in fresh)
+                {
+                    DependencyItems.Add(item);
+                }
+            }
+            else
+            {
+                foreach (var probed in fresh)
+                {
+                    var existing = DependencyItems.FirstOrDefault(x => x.Id == probed.Id);
+                    if (existing == null) continue;
+
+                    existing.State = probed.State;
+                    existing.DetectedValue = probed.DetectedValue;
+                    existing.StatusMessage = probed.StatusMessage;
+                    existing.IsBusy = false;
+                }
+            }
+
+            UpdateDependencySummary();
+        }
+
+        private void UpdateDependencySummary()
+        {
+            int blocking = DependencyItems.Count(x => x.IsBlocking);
+            int missing = DependencyItems.Count(x => x.IsMissing);
+            int installed = DependencyItems.Count(x => x.IsInstalled);
+
+            if (missing == 0)
+            {
+                TxtDependencySummary.Text = $"✓ Todos os pré-requisitos atendidos ({installed} verificados). A auditoria está liberada.";
+            }
+            else if (blocking > 0)
+            {
+                TxtDependencySummary.Text =
+                    $"✕ {blocking} dependência(s) obrigatória(s) ausente(s) de {DependencyItems.Count} verificadas. " +
+                    "Resolva os itens em vermelho para liberar a auditoria completa.";
+            }
+            else
+            {
+                TxtDependencySummary.Text =
+                    $"⚠ {missing} dependência(s) recomendada(s)/opcional(is) ausente(s). " +
+                    "A auditoria funciona, mas alguns guias de tuning podem não estar disponíveis.";
+            }
+
+            if (missing > 0)
+            {
+                TxtPreflightBadge.Text = missing.ToString();
+                BorderPreflightBadge.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                BorderPreflightBadge.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private DependencyItem? FindDependency(object? tag)
+        {
+            if (tag is not string id) return null;
+            return DependencyItems.FirstOrDefault(x => x.Id == id);
+        }
+
+        private void PreflightButton_Click(object sender, RoutedEventArgs e)
+        {
+            DependencyOverlay.Visibility = Visibility.Visible;
+        }
+
+        private async void DependencyCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            DependencyOverlay.Visibility = Visibility.Collapsed;
+
+            // Fechar o painel com tudo resolvido deve liberar a auditoria (caso ainda não tenha rodado).
+            if (!_auditStarted && !DependencyItems.Any(x => x.IsBlocking))
+            {
+                await RunAuditAsync();
+            }
+        }
+
+        private async void DependencyRecheckButton_Click(object sender, RoutedEventArgs e)
+        {
+            AppendLog("Reverificando pré-requisitos do sistema...");
+            await RefreshDependenciesAsync();
+            AppendLog("Reverificação de dependências concluída.");
+        }
+
+        private async void DependencyContinueButton_Click(object sender, RoutedEventArgs e)
+        {
+            DependencyOverlay.Visibility = Visibility.Collapsed;
+
+            if (!_auditStarted)
+            {
+                AppendLog("Continuando sem resolver todas as dependências. Alguns diagnósticos podem ser imprecisos.");
+                await RunAuditAsync();
+            }
+        }
+
+        private async void DependencyWingetButton_Click(object sender, RoutedEventArgs e)
+        {
+            var item = FindDependency((sender as Button)?.Tag);
+            if (item == null) return;
+
+            await InstallDependencyAsync(item);
+        }
+
+        private async Task InstallDependencyAsync(DependencyItem item)
+        {
+            item.IsBusy = true;
+            item.StatusMessage = "Instalando via winget... acompanhe o log.";
+            AppendLog($"Instalando {item.Name} via winget...");
+
+            var (success, message) = await _dependencyChecker.InstallViaWingetAsync(item, AppendLog);
+
+            item.IsBusy = false;
+            item.StatusMessage = success ? string.Empty : message;
+            AppendLog(message);
+
+            await RefreshDependenciesAsync();
+        }
+
+        private async void DependencyInstallAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            var pending = DependencyItems
+                .Where(x => x.IsMissing && !string.IsNullOrWhiteSpace(x.WingetId))
+                .ToList();
+
+            if (pending.Count == 0)
+            {
+                MessageBox.Show(
+                    "Nenhuma dependência ausente com instalação automática disponível.\n\n" +
+                    "Use os botões de download oficial ou o reparo individual.",
+                    "Nada a instalar",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Serão instaladas {pending.Count} dependência(s) via winget:\n\n" +
+                string.Join("\n", pending.Select(x => $"• {x.Name}")),
+                "Confirmar Instalação Automática",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            foreach (var item in pending)
+            {
+                await InstallDependencyAsync(item);
+            }
+        }
+
+        private void DependencyDownloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            var item = FindDependency((sender as Button)?.Tag);
+            if (item == null || string.IsNullOrWhiteSpace(item.DownloadUrl)) return;
+
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = item.DownloadUrl,
+                    UseShellExecute = true
+                });
+                AppendLog($"Download aberto no navegador: {item.DownloadUrl}");
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"Erro ao abrir o navegador: {ex.Message}");
+            }
+        }
+
+        private async void DependencyRepairButton_Click(object sender, RoutedEventArgs e)
+        {
+            var item = FindDependency((sender as Button)?.Tag);
+            if (item == null) return;
+
+            item.IsBusy = true;
+            var result = await Task.Run(() => _dependencyChecker.Repair(item));
+            item.IsBusy = false;
+
+            AppendLog(result.message);
+            MessageBox.Show(result.message, result.success ? "Reparo Concluído" : "Reparo Não Concluído",
+                MessageBoxButton.OK, result.success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+
+            await RefreshDependenciesAsync();
         }
 
         private async Task RunAuditAsync()
         {
+            _auditStarted = true;
             AppendLog("Iniciando auditoria completa de componentes e subsistemas...");
             TxtLogStatus.Text = "Examinando processador Zen 4, GPU RDNA 4, barramento PCIe e Windows...";
 
@@ -133,7 +371,13 @@ namespace AMDAutoTuning
                 _ => _allDiagnostics.Where(x => x.CategoryKey.Equals(_activeTabKey, StringComparison.OrdinalIgnoreCase))
             };
 
-            foreach (var item in filtered)
+            // Ordenacao por criticidade: Critico -> Atencao -> Info -> Otimizado.
+            // O enum DiagnosticSeverity ja declara Ok=0 ... Critical=3, entao
+            // OrderByDescending((int)Severity) entrega a ordem desejada.
+            // Desempate por titulo garante ordem estavel e previsivel entre auditorias.
+            foreach (var item in filtered
+                         .OrderByDescending(x => (int)x.Severity)
+                         .ThenBy(x => x.Title, StringComparer.CurrentCultureIgnoreCase))
             {
                 DisplayedDiagnostics.Add(item);
             }

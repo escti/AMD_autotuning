@@ -171,7 +171,8 @@
                         <TextBlock Text="⚡" FontSize="16" Foreground="#EF4444" Margin="0,0,8,0" VerticalAlignment="Center"/>
                         <TextBlock Text="AMD AutoTuning &amp; Optimizer" FontWeight="Bold" FontSize="13" Foreground="#F8FAFC" VerticalAlignment="Center"/>
                         <Border Background="#252A36" CornerRadius="4" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="EFF5 Edition v1.1" FontSize="10" Foreground="#94A3B8" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding AppVersionLabel, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       FontSize="10" Foreground="#94A3B8" FontWeight="SemiBold"/>
                         </Border>
                     </StackPanel>
 
@@ -225,6 +226,21 @@
 
                         <!-- Global Action Buttons -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                                    Margin="0,0,10,0"
+                                    Padding="10,7"
+                                    Click="PreflightButton_Click"
+                                    ToolTip="Verificar dependências e pré-requisitos do sistema">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🧩" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Pré-requisitos"/>
+                                    <Border x:Name="BorderPreflightBadge" Background="#EF4444" CornerRadius="9"
+                                            Padding="6,0" Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                        <TextBlock x:Name="TxtPreflightBadge" Text="0" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
                             <Button Style="{StaticResource SecondaryButtonStyle}" 
                                     Margin="0,0,10,0" 
                                     Click="RescanButton_Click"
@@ -523,6 +539,138 @@
                 </Border>
             </Grid>
         </Border>
+
+        <!-- DEPENDENCY PRE-FLIGHT OVERLAY -->
+        <Grid x:Name="DependencyOverlay" Background="#F0090B10" Visibility="Collapsed">
+            <Border Background="#12151D" BorderBrush="#333D52" BorderThickness="1" CornerRadius="12"
+                    Width="920" MaxHeight="700" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="22">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <StackPanel Grid.Row="0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🧩" FontSize="17" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Verificação de Pré-requisitos" FontSize="17" FontWeight="Bold" Foreground="#F8FAFC" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock FontSize="11.5" Foreground="#94A3B8" Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Text="O app precisa de algumas dependências do Windows e do ecossistema AMD para auditar o hardware com precisão. Resolva os itens em vermelho para liberar a auditoria completa."/>
+                        <Border Background="#1A1E29" BorderBrush="#2A3245" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,12,0,0">
+                            <TextBlock x:Name="TxtDependencySummary" Text="Verificando dependências do sistema..." FontSize="11.5" Foreground="#E2E8F0" TextWrapping="Wrap"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Dependency Cards -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,14,0,0">
+                        <ItemsControl x:Name="ItemsDependencyList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#161922" BorderBrush="#242B3B" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Grid.Column="0" Background="{Binding StatusBadgeColor}" CornerRadius="6"
+                                                    Width="34" Height="34" VerticalAlignment="Top">
+                                                <TextBlock Text="{Binding StatusIcon}" FontSize="15" FontWeight="Bold" Foreground="White"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+
+                                            <StackPanel Grid.Column="1" Margin="12,0,12,0">
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="#F8FAFC" TextWrapping="Wrap"/>
+
+                                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                                    <Border Background="#252A36" CornerRadius="4" Padding="6,1" Margin="0,0,8,0">
+                                                        <TextBlock Text="{Binding KindLabel}" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding StatusText}" FontSize="9.5" FontWeight="Bold"
+                                                               Foreground="{Binding StatusBadgeColor}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+
+                                                <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#94A3B8"
+                                                           TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                                <TextBlock Text="{Binding DetectedValue}" FontSize="11" Foreground="#E2E8F0"
+                                                           TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                <TextBlock Text="{Binding StatusMessage}" FontSize="10.5" Foreground="#FACC15"
+                                                           TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Style="{StaticResource SuccessButtonStyle}"
+                                                        Content="⚡ Instalar via Winget"
+                                                        Tag="{Binding Id}"
+                                                        Click="DependencyWingetButton_Click"
+                                                        Margin="0,0,8,0"
+                                                        ToolTip="Instala silenciosamente usando o Windows Package Manager"
+                                                        Visibility="{Binding ShowWingetButton, Converter={x:Static local:BooleanToVisibilityConverter.Instance}}"/>
+
+                                                <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                        Content="{Binding DownloadLabel}"
+                                                        Tag="{Binding Id}"
+                                                        Click="DependencyDownloadButton_Click"
+                                                        Margin="0,0,8,0"
+                                                        ToolTip="Abrir a página oficial de download no navegador"
+                                                        Visibility="{Binding ShowDownloadButton, Converter={x:Static local:BooleanToVisibilityConverter.Instance}}"/>
+
+                                                <Button Style="{StaticResource SecondaryButtonStyle}"
+                                                        Content="{Binding RepairLabel}"
+                                                        Tag="{Binding Id}"
+                                                        Click="DependencyRepairButton_Click"
+                                                        ToolTip="Tentar reparar automaticamente"
+                                                        Visibility="{Binding ShowRepairButton, Converter={x:Static local:BooleanToVisibilityConverter.Instance}}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Footer Actions -->
+                    <Grid Grid.Row="2" Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"
+                                    Click="DependencyInstallAllButton_Click"
+                                    ToolTip="Instalar via winget todas as dependências ausentes que suportam instalação automática">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚡" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Instalar Todas as Ausentes (winget)"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource SecondaryButtonStyle}" Click="DependencyRecheckButton_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🔄" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Reverificar"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource RevertButtonStyle}" Padding="12,7" Margin="0,0,10,0"
+                                    Click="DependencyContinueButton_Click"
+                                    ToolTip="Continuar para a auditoria mesmo com pendências">
+                                <TextBlock Text="Continuar mesmo assim ➔"/>
+                            </Button>
+                            <Button x:Name="BtnCloseDependencyPanel" Style="{StaticResource ActionButtonStyle}"
+                                    Content="Fechar" Width="90" Click="DependencyCloseButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- INSTRUCTION MODAL POPUP OVERLAY -->
         <Grid x:Name="ModalOverlay" Background="#B0000000" Visibility="Collapsed">

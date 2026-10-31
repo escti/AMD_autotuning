@@ -61,6 +61,17 @@ Write-Header "[1/5] Verificando versao do .NET SDK..."
 dotnet --version
 
 $outputDir = Join-Path $PSScriptRoot "dist"
+
+# O executavel em execucao mantem dist\AMDAutoTuning.exe travado e o Remove-Item
+# falha com "Acesso negado" (sem dizer o motivo real). Avisa antes de tentar.
+$running = Get-Process -Name "AMDAutoTuning" -ErrorAction SilentlyContinue
+if ($running) {
+    Write-Host ""
+    Write-Host "ERRO: o app esta em execucao (PID $($running[0].Id)) e trava dist\AMDAutoTuning.exe." -ForegroundColor Red
+    Write-Host "Feche a janela do AMD AutoTuning e rode o build novamente." -ForegroundColor Yellow
+    exit 1
+}
+
 if (Test-Path $outputDir) {
     Remove-Item -Path $outputDir -Recurse -Force
 }

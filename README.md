@@ -1,7 +1,7 @@
 # ⚡ AMD AutoTuning & Optimizer (EFF5 Edition)
 
 [![Build & Release](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml/badge.svg)](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/Version-v1.2.2-red.svg)](https://github.com/escti/AMD_autotuning/releases)
+[![Version](https://img.shields.io/badge/Version-v1.3.0-red.svg)](https://github.com/escti/AMD_autotuning/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-blue.svg)](https://microsoft.com/windows)
 [![Architecture](https://img.shields.io/badge/.NET-9.0%20WPF%20Single--File-red.svg)](https://dotnet.microsoft.com/)
 [![Company](https://img.shields.io/badge/Company-EFF5%20Automa%C3%A7%C3%B5es%20Inteligentes-blueviolet.svg)](https://eff5.com.br)
@@ -38,6 +38,34 @@ O aplicativo é organizado em abas especializadas para facilitar a auditoria e o
 5. **🖴 Drivers & Armazenamento:** Estado do comando TRIM para SSDs NVMe e SATA, integridade e verificação dos componentes do chipset AMD AM5.
 6. **🛡️ Histórico & Reversão:** Livro-razão (*ledger*) de alterações com timestamp e botão `↩ Reverter` para restaurar o estado original de qualquer tweak a qualquer momento.
 
+> Os achados são **ordenados por criticidade** em todas as abas: 🔴 Crítico → 🟠 Atenção → 🔵 Info → 🟢 Otimizado.
+> O que exige ação agora aparece sempre no topo; itens já otimizados ficam no fim da lista.
+
+---
+
+## 🧩 Pré-requisitos & Verificação de Dependências
+
+Antes da primeira auditoria, o app confere se a máquina tem tudo o que precisa para diagnosticar corretamente.
+Se faltar alguma dependência **obrigatória**, a tela de pré-requisitos abre automaticamente (nada roda com dados incompletos).
+
+| Dependência | Classe | Como é detectada |
+| :--- | :--- | :--- |
+| WMI (Instrumentação de Gerenciamento do Windows) | Obrigatória | Consulta real ao `Win32_OperatingSystem` |
+| Visual C++ 2015–2022 Redistributable (x64) | Obrigatória | Chave `VC\Runtimes\X64` no registro |
+| Driver AMD Radeon (Adrenalin) | Obrigatória | `Win32_VideoController` com vendor AMD |
+| Windows Package Manager (winget) | Recomendada | PATH, alias do usuário e pacote `DesktopAppInstaller` |
+| Driver de Chipset AMD (AM5) | Recomendada | `amdppm.sys` / serviço `amdppm` |
+| AMD Ryzen Master | Opcional | Chave de desinstalação e `Program Files\AMD\RyzenMaster` |
+
+Cada item ausente oferece três caminhos:
+
+* **⚡ Instalar via Winget** — instalação silenciosa com log em tempo real (ou *Instalar Todas as Ausentes* para o lote completo).
+* **🌐 Baixar** — abre a página oficial da Microsoft ou da AMD no navegador.
+* **♻ Reparar** — para o WMI, tenta iniciar o serviço e, se falhar, mostra os comandos `winmgmt /verifyrepository` e `/salvagerepository`.
+
+O painel continua acessível a qualquer momento pelo botão **🧩 Pré-requisitos** no cabeçalho (com contador de pendências),
+ou abrindo o executável com a flag `AMDAutoTuning.exe --deps`. Há ainda **"Continuar mesmo assim"** para quem quer rodar a auditoria com pendências.
+
 ---
 
 ## 📋 Catálogo Completo de Alterações e Segurança
@@ -68,8 +96,11 @@ Antes de aplicar qualquer alteração:
 
 1. Baixe o executável mais recente na aba [Releases](https://github.com/escti/AMD_autotuning/releases): **`AMDAutoTuning.exe`**.
 2. Clique com o botão direito e selecione **"Executar como Administrador"** (necessário para ler o barramento PCI e aplicar os planos do sistema).
-3. Verifique o **Health Score** e os cartões sinalizados em vermelho ou amarelo.
-4. Clique em **"Otimizar Tudo Seguro (1-Clique)"** ou navegue pelas abas para aplicar ou reverter ajustes pontuais.
+3. Na primeira execução, o app valida os **pré-requisitos** (WMI, VC++ Redistributable, driver AMD, winget). Se algo obrigatório faltar, a tela de dependências abre com instalação via winget ou download oficial.
+4. Verifique o **Health Score** e os cartões no topo da lista — os itens críticos aparecem sempre primeiro.
+5. Clique em **"Otimizar Tudo Seguro (1-Clique)"** ou navegue pelas abas para aplicar ou reverter ajustes pontuais.
+
+> Precisa reverificar as dependências depois? Use o botão **🧩 Pré-requisitos** no cabeçalho ou rode `AMDAutoTuning.exe --deps`.
 
 ---
 

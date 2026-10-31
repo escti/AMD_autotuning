@@ -19,7 +19,8 @@
     Nome do fornecedor. Se omitido, use -PublisherCodePoints.
 
 .PARAMETER PublisherCodePoints
-    Array de inteiros (code points Unicode) que compoem o nome do fornecedor.
+    Code points Unicode que compoem o nome do fornecedor. Aceita tanto um array
+    (69,70,70,53) quanto uma lista unica entre aspas ("69,70,70,53").
     Ex.: para "EFF5 Automações Inteligentes":
         69,70,70,53,32,65,117,116,111,109,97,231,245,101,115,32,73,110,116,101,108,105,103,101,110,116,101,115
     Use esta opcao em vez de -PublisherName quando o nome tiver acentos,
@@ -42,7 +43,7 @@ param(
 
     [string]$PublisherName,
 
-    [int[]]$PublisherCodePoints,
+    [string[]]$PublisherCodePoints,
 
     [string]$TimestampServer = "http://timestamp.digicert.com",
 
@@ -55,7 +56,12 @@ $ErrorActionPreference = "Stop"
 # 1. Resolver o nome do fornecedor de forma imune a encoding
 # ---------------------------------------------------------------------------
 if ($PublisherCodePoints -and $PublisherCodePoints.Count -gt 0) {
-    $resolvedName = -join ($PublisherCodePoints | ForEach-Object { [char]$_ })
+    # Aceita tanto 69,70,70 quanto "69,70,70" (o -File do PowerShell entrega string).
+    $tokens = @()
+    foreach ($entry in $PublisherCodePoints) {
+        $tokens += ($entry -split '[,;\s]+' | Where-Object { $_ -ne '' })
+    }
+    $resolvedName = -join ($tokens | ForEach-Object { [char]([int]$_) })
 } elseif ($PublisherName) {
     $resolvedName = $PublisherName
 } else {
