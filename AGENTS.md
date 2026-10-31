@@ -66,4 +66,9 @@ Carregue a skill com a ferramenta `skill` antes de mexer nessas áreas:
 
 - Pushes para a branch `main` com tags no formato `v*` (ex: `v1.2.0`) disparam o workflow `.github/workflows/build.yml`.
 - O GitHub Actions compila em ambiente `windows-latest` e cria automaticamente a Release no GitHub anexando o `AMDAutoTuning.exe`.
-- **Push exige a conta `escti`.** O `gh` pode estar na conta `thiagoea88` e o push falha com `403`. Verifique com `gh auth status` e troque com `gh auth switch --user escti`. Não deixe token embutido na URL do remote.
+- **Push exige a conta `escti`.** O `gh` pode estar na conta `thiagoea88` e o push falha com `403`. O Credential Manager armazena a conta errada e sobrepõe a URL, então use:
+  ```powershell
+  $t = (gh auth token --user escti).Trim()
+  git -c credential.helper= push https://escti:$t@github.com/escti/AMD_autotuning.git main
+  ```
+  `gh auth switch` não é confiável aqui — ele reverte. Sempre passe `--user escti` ao pedir o token e nunca deixe o token gravado na URL do remote.
