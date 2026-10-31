@@ -71,18 +71,31 @@ Antes de qualquer commit/push, revise e atualize:
 1. **`CHANGELOG.md`** — registre toda alteração sob a versão atual ou em `[Unreleased]`, no padrão *Keep a Changelog* (Adicionado / Modificado / Corrigido / Removido).
 2. **`README.md`** — atualize versão, catálogo de tweaks, tabelas de recursos e instruções de build quando o comportamento do app mudar.
 3. **`AGENTS.md`** — registre qualquer armadilha técnica, comando ou quirk novo descoberto durante a tarefa.
-4. **`.opencode/skills/README.md`** — atualize o índice se alguma skill ou script auxiliar foi criado, renomeado ou removido.
-5. **`build.ps1` / `.csproj`** — a versão deve coincidir com a documentada. Ao subir versão, atualize `Version`, `AssemblyVersion`, `FileVersion` e o cabeçalho do `CHANGELOG.md` juntos.
+4. **`BUGS.md`** — todo bug encontrado e **não corrigido na mesma tarefa** precisa estar catalogado aqui (ID, gravidade, passos de reprodução). Bug corrigido migra para *Resolvidos* com o commit e, em paralelo, para o `### Corrigido` do `CHANGELOG.md`.
+5. **`.opencode/skills/README.md`** — atualize o índice se alguma skill ou script auxiliar foi criado, renomeado ou removido.
+6. **`build.ps1` / `.csproj`** — a versão deve coincidir com a documentada. Ao subir versão, atualize `Version`, `AssemblyVersion`, `FileVersion` e o cabeçalho do `CHANGELOG.md` juntos.
 
 Checklist obrigatório antes do `git add`:
 
 - [ ] O `CHANGELOG.md` descreve exatamente o que mudou?
 - [ ] O `README.md` continua coerente com os recursos reais?
 - [ ] O `AGENTS.md` cobre as novas armadilhas, se houver?
+- [ ] Todo bug conhecido e pendente está no `BUGS.md` (nenhum achado só na conversa)?
 - [ ] O índice de skills reflete o diretório `.opencode/skills/`?
 - [ ] As versões em `build.ps1`, `.csproj` e `CHANGELOG.md` batem?
 
 Commit ou push sem cumprir esta checklist é considerado erro de processo.
+
+### Onde cada tipo de informação vive
+
+| Tipo de informação | Arquivo |
+| --- | --- |
+| O que mudou em cada versão (já entregue) | `CHANGELOG.md` |
+| Bug encontrado e **ainda não corrigido** | `BUGS.md` |
+| Ideia/melhoria em andamento, sem release | `CHANGELOG.md` → `[Unreleased]` → `### Adicionado` |
+| Como usar, instalar e compilar | `README.md` |
+| Armadilha técnica e procedimento de release | `AGENTS.md` |
+| Instruções reutilizáveis por domínio | `.opencode/skills/` |
 
 ---
 

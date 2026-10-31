@@ -7,6 +7,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [Unreleased]
+
+### Adicionado
+- **`BUGS.md` — catálogo de bugs e problemas conhecidos:**
+  - Escala de gravidade P0–P3 (P0 automático para qualquer alteração de registro/serviço sem snapshot no ledger).
+  - Seções *Abertos*, *Em análise / Bloqueados* e *Resolvidos*, com tabela de resumo.
+  - Modelo de registro com versão testada, ambiente, passos de reprodução, evidência e causa raiz.
+  - Fluxo explícito: bug corrigido migra para *Resolvidos* **e** para o `### Corrigido` do `CHANGELOG.md`.
+- **Seção "Onde cada tipo de informação vive" no `AGENTS.md`**, eliminando a ambiguidade entre backlog, changelog e armadilhas técnicas.
+- **Item `BUGS.md` e novo checklist na regra Doc-First**, para que nenhum achado de teste fique apenas na conversa.
+
+### Corrigido
+- **Badge de versão do `README.md`** permanecia em `v1.1.0` enquanto o projeto já estava em `1.2.2`; agora reflete a versão real.
+
+---
+
 ## [1.2.2] - 2026-10-31
 
 ### Adicionado

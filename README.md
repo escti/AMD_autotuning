@@ -1,7 +1,7 @@
 # ⚡ AMD AutoTuning & Optimizer (EFF5 Edition)
 
 [![Build & Release](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml/badge.svg)](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/Version-v1.1.0-red.svg)](https://github.com/escti/AMD_autotuning/releases)
+[![Version](https://img.shields.io/badge/Version-v1.2.2-red.svg)](https://github.com/escti/AMD_autotuning/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-blue.svg)](https://microsoft.com/windows)
 [![Architecture](https://img.shields.io/badge/.NET-9.0%20WPF%20Single--File-red.svg)](https://dotnet.microsoft.com/)
 [![Company](https://img.shields.io/badge/Company-EFF5%20Automa%C3%A7%C3%B5es%20Inteligentes-blueviolet.svg)](https://eff5.com.br)
@@ -101,6 +101,7 @@ O arquivo único compilado e independente de 59 MB estará pronto em:
 | --- | --- |
 | [`AGENTS.md`](AGENTS.md) | Regras operacionais para agentes: build, armadilhas arquiteturais, processo de release e a regra **Doc-First** pré-commit. |
 | [`CHANGELOG.md`](CHANGELOG.md) | Histórico de versões no padrão *Keep a Changelog*. |
+| [`BUGS.md`](BUGS.md) | Catálogo de bugs abertos e resolvidos, com gravidade, passos de reprodução e evidências. |
 | [`.opencode/skills/`](.opencode/skills/README.md) | Skills reutilizáveis: `windows-authenticode`, `wpf-singlefile-app`, `amd-hardware-audit`. |
 
 > **Regra de contribuição:** todo commit ou push exige atualização prévia da documentação
