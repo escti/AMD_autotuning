@@ -36,7 +36,9 @@ Instruções críticas e não óbvias para agentes que trabalham neste repositó
 ### 2. Assinatura Digital e UAC (`consent.exe`)
 - O app possui `requireAdministrator` no `app.manifest`.
 - A tela de elevação do UAC roda sob a conta `NT AUTHORITY\SYSTEM` e **ignora completamente** `Cert:\CurrentUser`.
-- Para o UAC exibir o fornecedor verificado da **EFF5 Automações Inteligentes** com banner azul, o certificado DEVE estar presente em `Cert:\LocalMachine\Root` e `Cert:\LocalMachine\TrustedPublisher` (gerenciado via `certutil -addstore -f "Root"` e `certutil -addstore -f "TrustedPublisher"` no `build.ps1`).
+- Para o UAC exibir o fornecedor verificado da **EFF5 Automações Inteligentes** com banner azul, o certificado DEVE estar presente em `Cert:\LocalMachine\Root` e `Cert:\LocalMachine\TrustedPublisher`.
+- O `App.xaml.cs` sincroniza essas lojas no boot elevado, então rodar o `.exe` como admin já corrige o registro.
+- **Armadilha de encoding (custo alto de depuração):** `build.ps1` PRECISA ficar em UTF-8 **com BOM**. O Windows PowerShell 5.1 lê scripts sem BOM como ANSI e corrompe acentos, gerando certificados com Subject duplamente codificado (`C3 83 C2 A7` em vez de `C3 A7`) que o UAC renderiza como `Automa????es`. O nome do certificado é montado por `[char]0x00E7` / `[char]0x00F5` e validado por inspeção dos bytes do RDN (`Test-CertSubjectEncoding`).
 
 ### 3. Detecção de Monitores (Evitar Falsos Positivos)
 - **NUNCA** use `Win32_VideoController` para detectar monitores ativos. Dockstations USB (como Dell D6000/D3100) registram adaptadores DisplayLink virtuais no Windows mesmo sem telas conectadas.

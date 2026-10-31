@@ -8,13 +8,21 @@ namespace AMDAutoTuning
 {
     public partial class App : Application
     {
+        private const string PublisherMarker = "EFF5";
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            EnsureSelfSignedCertTrustedInLocalMachine();
+            EnsurePublisherCertificateTrusted();
         }
 
-        private static void EnsureSelfSignedCertTrustedInLocalMachine()
+        /// <summary>
+        /// O UAC (consent.exe) roda como NT AUTHORITY\SYSTEM e valida assinaturas
+        /// EXCLUSIVAMENTE contra Cert:\LocalMachine\*. Como o app ja inicia elevado
+        /// (requireAdministrator), registramos o proprio certificado de assinatura
+        /// nas lojas da maquina e removemos entradas antigas/obsoletas da EFF5.
+        /// </summary>
+        private static void EnsurePublisherCertificateTrusted()
         {
             try
             {
@@ -22,31 +30,60 @@ namespace AMDAutoTuning
                 if (string.IsNullOrEmpty(currentExe) || !File.Exists(currentExe)) return;
 
 #pragma warning disable SYSLIB0057
-                var cert = X509Certificate.CreateFromSignedFile(currentExe);
+                var rawCert = X509Certificate.CreateFromSignedFile(currentExe);
 #pragma warning restore SYSLIB0057
-                if (cert == null || !cert.Subject.Contains("EFF5")) return;
 
-                using var storeRoot = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
-                storeRoot.Open(OpenFlags.ReadOnly);
-                bool hasInRoot = storeRoot.Certificates.Find(X509FindType.FindByThumbprint, cert.GetCertHashString(), false).Count > 0;
-                storeRoot.Close();
+                if (rawCert == null) return;
 
-                if (!hasInRoot)
+                using var signerCert = new X509Certificate2(rawCert);
+                if (!signerCert.Subject.Contains(PublisherMarker, StringComparison.OrdinalIgnoreCase)) return;
+
+                string thumbprint = signerCert.Thumbprint;
+
+                SyncStore(StoreName.Root, signerCert, thumbprint);
+                SyncStore(StoreName.TrustedPublisher, signerCert, thumbprint);
+            }
+            catch
+            {
+                // Nunca impedir a inicializacao do app por causa de trust de certificado.
+            }
+        }
+
+        private static void SyncStore(StoreName storeName, X509Certificate2 cert, string thumbprint)
+        {
+            try
+            {
+                using var store = new X509Store(storeName, StoreLocation.LocalMachine);
+                store.Open(OpenFlags.ReadWrite);
+
+                // Remove entradas EFF5 obsoletas (ex.: certificado com encoding corrompido)
+                var stale = new System.Collections.Generic.List<X509Certificate2>();
+                foreach (var existing in store.Certificates)
                 {
-                    string tempCer = Path.Combine(Path.GetTempPath(), "eff5_trusted.cer");
-                    File.WriteAllBytes(tempCer, cert.Export(X509ContentType.Cert));
+                    if (existing.Subject.Contains(PublisherMarker, StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(existing.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        stale.Add(existing);
+                    }
+                }
 
-                    // When running as admin (requireAdministrator), certutil can write to LocalMachine
-                    var psi1 = new ProcessStartInfo("certutil.exe", $"-addstore -f Root \"{tempCer}\"") { CreateNoWindow = true, UseShellExecute = false };
-                    Process.Start(psi1)?.WaitForExit(5000);
+                foreach (var old in stale)
+                {
+                    try { store.Remove(old); } catch { }
+                    old.Dispose();
+                }
 
-                    var psi2 = new ProcessStartInfo("certutil.exe", $"-addstore -f TrustedPublisher \"{tempCer}\"") { CreateNoWindow = true, UseShellExecute = false };
-                    Process.Start(psi2)?.WaitForExit(5000);
-
-                    File.Delete(tempCer);
+                // Adiciona o certificado atual se ainda nao estiver presente
+                var found = store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, false);
+                if (found.Count == 0)
+                {
+                    store.Add(cert);
                 }
             }
-            catch { }
+            catch
+            {
+                // Sem elevacao ou loja bloqueada: ignora silenciosamente.
+            }
         }
     }
 }

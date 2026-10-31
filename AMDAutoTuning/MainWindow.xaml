@@ -12,6 +12,7 @@
         Background="#0E1015"
         Foreground="#E2E8F0"
         FontFamily="Segoe UI"
+        Icon="Assets/app.ico"
         WindowStyle="None"
         AllowsTransparency="False">
 

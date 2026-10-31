@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AssemblyName>AMDAutoTuning</AssemblyName>
     <RootNamespace>AMDAutoTuning</RootNamespace>
     <Version>1.2.0</Version>
@@ -15,6 +16,7 @@
     <Company>EFF5 Automações Inteligentes</Company>
     <Authors>EFF5 Automações Inteligentes</Authors>
     <Product>AMD AutoTuning &amp; Optimizer</Product>
+    <AssemblyTitle>AMD AutoTuning &amp; Optimizer</AssemblyTitle>
     <Description>Otimizador e Auditor de Desempenho para AMD Ryzen e Radeon</Description>
     <Copyright>Copyright © 2026 EFF5 Automações Inteligentes (eff5.com.br)</Copyright>
     <PackageProjectUrl>https://eff5.com.br</PackageProjectUrl>
@@ -28,6 +30,10 @@
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Management" Version="10.0.14" />

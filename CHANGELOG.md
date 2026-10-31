@@ -7,6 +7,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.2.1] - 2026-10-30
+
+### Corrigido
+- **Acentuação do fornecedor no UAC (`Automações`):**
+  - O `build.ps1` era salvo em UTF-8 sem BOM e o PowerShell 5.1 o lia como ANSI/Windows-1252, gerando certificados com Subject duplamente codificado (bytes `C3 83 C2 A7` em vez de `C3 A7`), que o Windows exibia como `Automa????es`.
+  - O nome do certificado agora é montado por code points (`[char]0x00E7`, `[char]0x00F5`), imune a codepage do host, e validado por inspeção dos bytes do RDN antes de assinar.
+  - O `build.ps1` passou a ser gravado em UTF-8 **com BOM**.
+  - `App.xaml.cs` agora sincroniza as lojas `LocalMachine\Root` e `LocalMachine\TrustedPublisher`, registrando o certificado atual e removendo entradas obsoletas.
+
+### Adicionado
+- **Ícone do aplicativo:** `Assets/app.ico` multi-resolução (16, 24, 32, 48, 64, 128 e 256 px, frames PNG), aplicado via `<ApplicationIcon>` e vinculado à janela.
+- **Gerador de ícone reproduzível:** `tools/make-icon.ps1`.
+- **`AssemblyTitle`** definido, para o UAC e as propriedades do arquivo exibirem `AMD AutoTuning & Optimizer` em vez do nome interno do assembly.
+
+---
+
 ## [1.2.0] - 2026-10-30
 
 ### Adicionado
