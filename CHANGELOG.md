@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [Unreleased]
+
+### Adicionado
+- **Skills do projeto (`.opencode/skills/`)** — instruções reutilizáveis carregadas sob demanda:
+  - `windows-authenticode`: assinatura Authenticode, registro em `LocalMachine` para o UAC, diagnóstico de mojibake no Subject e `scripts/sign-exe.ps1`.
+  - `wpf-singlefile-app`: publish single-file, ícone multi-resolução, guardas de ciclo de vida do XAML e `scripts/make-icon.ps1`.
+  - `amd-hardware-audit`: coleta real via WMI/EventLog/powercfg (ReBAR, CPPC Gold/Silver, EPP, VBS/HVCI, monitores, limites de PBO).
+
+---
+
 ## [1.2.1] - 2026-10-30
 
 ### Corrigido

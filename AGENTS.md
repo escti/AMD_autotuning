@@ -50,7 +50,20 @@ Instruções críticas e não óbvias para agentes que trabalham neste repositó
 
 ---
 
+## 📚 Skills do Projeto (`.opencode/skills/`)
+
+Carregue a skill com a ferramenta `skill` antes de mexer nessas áreas:
+
+| Skill | Quando usar |
+| --- | --- |
+| `windows-authenticode` | Assinatura, UAC, certificados, mojibake no Subject. Inclui `scripts/sign-exe.ps1`. |
+| `wpf-singlefile-app` | Publish single-file, ícone multi-resolução, crashes de ciclo de vida do XAML. Inclui `scripts/make-icon.ps1`. |
+| `amd-hardware-audit` | Coleta WMI/EventLog/powercfg de Ryzen/Radeon, ReBAR, CPPC, EPP, VBS. |
+
+---
+
 ## 🚀 CI / CD & Releases no GitHub
 
 - Pushes para a branch `main` com tags no formato `v*` (ex: `v1.2.0`) disparam o workflow `.github/workflows/build.yml`.
 - O GitHub Actions compila em ambiente `windows-latest` e cria automaticamente a Release no GitHub anexando o `AMDAutoTuning.exe`.
+- **Push exige a conta `escti`.** O `gh` pode estar na conta `thiagoea88` e o push falha com `403`. Verifique com `gh auth status` e troque com `gh auth switch --user escti`. Não deixe token embutido na URL do remote.
