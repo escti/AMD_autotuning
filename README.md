@@ -89,6 +89,23 @@ Na raiz do repositório, execute:
 O arquivo único compilado e independente de 59 MB estará pronto em:
 `dist\AMDAutoTuning.exe`
 
+> O script também assina o executável com o certificado da EFF5 e registra a chave
+> pública em `LocalMachine\Root` e `LocalMachine\TrustedPublisher` para o UAC exibir
+> o fornecedor verificado. Sem elevação, o próprio app faz esse registro no primeiro boot.
+
+---
+
+## 📚 Documentação do Projeto
+
+| Arquivo | Conteúdo |
+| --- | --- |
+| [`AGENTS.md`](AGENTS.md) | Regras operacionais para agentes: build, armadilhas arquiteturais, processo de release e a regra **Doc-First** pré-commit. |
+| [`CHANGELOG.md`](CHANGELOG.md) | Histórico de versões no padrão *Keep a Changelog*. |
+| [`.opencode/skills/`](.opencode/skills/README.md) | Skills reutilizáveis: `windows-authenticode`, `wpf-singlefile-app`, `amd-hardware-audit`. |
+
+> **Regra de contribuição:** todo commit ou push exige atualização prévia da documentação
+> afetada. Detalhes na seção *Doc-First Rule* do `AGENTS.md`.
+
 ---
 
 ## 📝 Licença

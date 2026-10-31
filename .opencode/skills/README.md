@@ -39,3 +39,5 @@ com a `description` do frontmatter.
 - Os scripts `.ps1` devem ser salvos em **UTF-8 com BOM**: o Windows PowerShell 5.1
   lê arquivos sem BOM como ANSI e corrompe acentos (ver skill `windows-authenticode`).
 - Conteúdo em português para consistência com o restante do repositório.
+- Ao criar, renomear ou remover uma skill, atualize o índice acima **antes** de
+  commitar — exigência da regra *Doc-First* documentada em `AGENTS.md`.

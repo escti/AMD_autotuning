@@ -62,6 +62,30 @@ Carregue a skill com a ferramenta `skill` antes de mexer nessas áreas:
 
 ---
 
+## 📋 Regra Obrigatória Pré-Commit & Pré-Push (Doc-First Rule)
+
+**NUNCA execute `git commit` ou `git push` sem antes verificar e atualizar TODA a documentação do repositório.**
+
+Antes de qualquer commit/push, revise e atualize:
+
+1. **`CHANGELOG.md`** — registre toda alteração sob a versão atual ou em `[Unreleased]`, no padrão *Keep a Changelog* (Adicionado / Modificado / Corrigido / Removido).
+2. **`README.md`** — atualize versão, catálogo de tweaks, tabelas de recursos e instruções de build quando o comportamento do app mudar.
+3. **`AGENTS.md`** — registre qualquer armadilha técnica, comando ou quirk novo descoberto durante a tarefa.
+4. **`.opencode/skills/README.md`** — atualize o índice se alguma skill ou script auxiliar foi criado, renomeado ou removido.
+5. **`build.ps1` / `.csproj`** — a versão deve coincidir com a documentada. Ao subir versão, atualize `Version`, `AssemblyVersion`, `FileVersion` e o cabeçalho do `CHANGELOG.md` juntos.
+
+Checklist obrigatório antes do `git add`:
+
+- [ ] O `CHANGELOG.md` descreve exatamente o que mudou?
+- [ ] O `README.md` continua coerente com os recursos reais?
+- [ ] O `AGENTS.md` cobre as novas armadilhas, se houver?
+- [ ] O índice de skills reflete o diretório `.opencode/skills/`?
+- [ ] As versões em `build.ps1`, `.csproj` e `CHANGELOG.md` batem?
+
+Commit ou push sem cumprir esta checklist é considerado erro de processo.
+
+---
+
 ## 🚀 CI / CD & Releases no GitHub
 
 - Pushes para a branch `main` com tags no formato `v*` (ex: `v1.2.0`) disparam o workflow `.github/workflows/build.yml`.

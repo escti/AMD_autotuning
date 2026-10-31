@@ -7,13 +7,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-## [Unreleased]
+## [1.2.2] - 2026-10-31
 
 ### Adicionado
+- **Regra Doc-First no `AGENTS.md`:** commit e push passam a exigir atualização prévia de `CHANGELOG.md`, `README.md`, `AGENTS.md`, índice de skills e sincronia de versões entre `build.ps1`, `.csproj` e `CHANGELOG.md`.
 - **Skills do projeto (`.opencode/skills/`)** — instruções reutilizáveis carregadas sob demanda:
   - `windows-authenticode`: assinatura Authenticode, registro em `LocalMachine` para o UAC, diagnóstico de mojibake no Subject e `scripts/sign-exe.ps1`.
   - `wpf-singlefile-app`: publish single-file, ícone multi-resolução, guardas de ciclo de vida do XAML e `scripts/make-icon.ps1`.
   - `amd-hardware-audit`: coleta real via WMI/EventLog/powercfg (ReBAR, CPPC Gold/Silver, EPP, VBS/HVCI, monitores, limites de PBO).
+- **Seção "Documentação do Projeto" no `README.md`**, apontando para `AGENTS.md`, `CHANGELOG.md` e o índice de skills.
+
+### Corrigido
+- **Versão do executável não correspondia à release:** o `.csproj` permanecia em `1.2.0` enquanto o `CHANGELOG.md` já registrava `1.2.1`. Versões agora sincronizadas em `1.2.2`.
 
 ---
 
