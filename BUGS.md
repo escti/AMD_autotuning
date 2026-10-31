@@ -45,17 +45,46 @@ o problema será redescoberto do zero.
 
 | Status | Quantidade |
 | --- | --- |
-| 🔴 Abertos | 0 |
+| 🔴 Abertos | 1 |
 | 🟠 Em análise / Bloqueados | 0 |
-| 🟢 Resolvidos | 0 |
+| 🟢 Resolvidos | 1 |
 
-_Última atualização: 2026-10-31 — é esperado, o catálogo acabou de ser criado._
+_Última atualização: 2026-10-31._
 
 ---
 
 ## 🔴 Abertos
 
-_Nenhum bug registrado no momento._
+### BUG-002 — Artefato gerado pelo CI sai sem assinatura Authenticode
+
+| Campo | Valor |
+| --- | --- |
+| **Data** | 2026-10-31 |
+| **Gravidade** | 🟡 Média (P2) |
+| **Área** | `.github/workflows/build.yml` — step *Publish Single-File Executable* |
+| **Versão testada** | 1.3.0 |
+| **Ambiente** | GitHub Actions · `windows-latest` |
+| **Status** | Aberto |
+
+**Comportamento observado:**
+O `AMDAutoTuning.exe` publicado na Release pelo GitHub Actions é compilado sem assinatura
+(o workflow não executa `build.ps1` nem o step de assinatura). O `.exe` assinado só existe
+quando o build é feito localmente.
+
+**Comportamento esperado:**
+O artefato da Release deveria ser idêntico ao gerado por `build.ps1`: assinado com SHA256,
+carimbo de tempo e `CompanyName = EFF5 Automações Inteligentes`.
+
+**Impacto:**
+O SmartScreen/UAC trata o download da Release como "Editor desconhecido", minando a
+percepção de confiança do produto — exatamente o problema que a skill
+`windows-authenticode` resolve no build local.
+
+**Hipótese / causa raiz:**
+A chave privada do certificado (`.pfx`) não está no CI e o workflow nunca chama o passo
+de assinatura. Opções: (a) guardar `.pfx` + senha em `secrets`, importar, assinar com
+`Set-AuthenticodeSignature` e publicar o artefato assinado; (b) adquirir certificado de
+CA reconhecida e usar EV Code Signing em hardware/HSM.
 
 ---
 
@@ -67,7 +96,33 @@ _Nenhum item aguardando investigação ou dependência externa._
 
 ## 🟢 Resolvidos
 
-_Nenhum item registrado desde a criação deste catálogo._
+### BUG-001 — Release do CI falhava com 403 ao criar a GitHub Release
+
+| Campo | Valor |
+| --- | --- |
+| **Data** | 2026-10-31 |
+| **Gravidade** | 🟠 Alta (P1) |
+| **Área** | `.github/workflows/build.yml` — step *Create Release on Tag* |
+| **Versão testada** | 1.2.2 |
+| **Status** | ✅ Resolvido em 1.3.0 |
+
+**Comportamento observado:**
+Em toda tag `v*`, o step `softprops/action-gh-release@v2` terminava com:
+
+```text
+⚠️ GitHub release failed with status: 403
+{"message":"Resource not accessible by integration","status":"403"}
+```
+
+O build e o upload de artifact funcionavam, mas a Release nunca era criada — o `v1.2.2`
+ficou sem artefato publicado.
+
+**Causa raiz:**
+O workflow não declarava `permissions`. O `GITHUB_TOKEN` herdava o padrão somente-leitura
+da organização, insuficiente para `POST /repos/{owner}/{repo}/releases`.
+
+**Resolução:**
+Adicionado `permissions: contents: write` no nível do workflow. Commit desta versão (1.3.0).
 
 > Correções anteriores a este arquivo continuam documentadas no
 > [`CHANGELOG.md`](CHANGELOG.md) (seções `### Corrigido` de cada versão).
@@ -121,7 +176,8 @@ Ao rodar uma bateria, registre cada achado nesta tabela antes de detalhar:
 
 | ID | Gravidade | Área | Descrição em 1 linha | Status |
 | --- | --- | --- | --- | --- |
-| — | — | — | _nenhum achado ainda_ | — |
+| BUG-001 | 🟠 Alta | `.github/workflows/build.yml` | Release do CI falhava com 403 (token sem `contents: write`) | ✅ Resolvido |
+| BUG-002 | 🟡 Média | `.github/workflows/build.yml` | Artefato da Release é publicado sem assinatura Authenticode | 🔴 Aberto |
 
 ---
 

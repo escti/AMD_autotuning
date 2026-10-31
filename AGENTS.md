@@ -122,6 +122,9 @@ Commit ou push sem cumprir esta checklist é considerado erro de processo.
 
 - Pushes para a branch `main` com tags no formato `v*` (ex: `v1.2.0`) disparam o workflow `.github/workflows/build.yml`.
 - O GitHub Actions compila em ambiente `windows-latest` e cria automaticamente a Release no GitHub anexando o `AMDAutoTuning.exe`.
+- **`permissions: contents: write` é obrigatório no workflow.** Sem ele o `GITHUB_TOKEN` herdado é somente-leitura e o step de release falha com `403 — Resource not accessible by integration` (foi exatamente o que aconteceu na `v1.2.2`, registrado como BUG-001).
+- **O workflow usa o arquivo do commit apontado pela tag.** Corrigir o `.yml` depois de criar a tag não conserta aquela execução: é preciso apagar e recriar a tag (`git tag -d`, `git push --delete`, retag) para o run usar a definição corrigida.
+- O artefato do CI é **não assinado** (o workflow não executa `build.ps1`). Isso está catalogado como BUG-002 em `BUGS.md` e é a diferença entre `dist\` local e o download da Release.
 - **Push exige a conta `escti`.** O `gh` pode estar na conta `thiagoea88` e o push falha com `403`. O Credential Manager armazena a conta errada e sobrepõe a URL, então use:
   ```powershell
   $t = (gh auth token --user escti).Trim()

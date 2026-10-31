@@ -37,8 +37,12 @@ _(sem alterações pendentes)_
 - **Badge de versão no título da janela** passou a derivar do assembly (`AppVersionLabel`), eliminando a divergência que mantinha `v1.1` fixo no XAML.
 
 ### Corrigido
+- **GitHub Actions nunca publicava a Release (403):** o workflow não declarava `permissions`, então o `GITHUB_TOKEN` herdava o padrão somente-leitura e o `softprops/action-gh-release` falhava com `Resource not accessible by integration`. A tag `v1.2.2` ficou sem artefato publicado. Adicionado `permissions: contents: write`.
 - **`build.ps1` falhava com "Acesso negado" sem explicação** quando o app estava aberto (o `.exe` de `dist\` fica travado em execução). Agora detecta o processo e informa o motivo real antes de tentar apagar.
 - **`sign-exe.ps1` (skill `windows-authenticode`) rejeitava `-PublisherCodePoints` via `-File`:** o PowerShell não converte a string `69,70,70` em `int[]`. O parâmetro virou `[string[]]` com split interno, aceitando tanto array quanto lista única — e a armadilha ficou documentada na skill.
+
+### Conhecido (registrado em `BUGS.md`)
+- **BUG-002 🔴 P2 — artefato do CI sai sem assinatura Authenticode.** O `.exe` da Release é gerado pelo `dotnet publish` puro; o assinado só existe no build local. Requer `.pfx` em `secrets` (ou certificado EV) para fechar a lacuna.
 
 ### Documentação (pendências da versão anterior, agora liberadas)
 - **`BUGS.md` — catálogo de bugs e problemas conhecidos:**
