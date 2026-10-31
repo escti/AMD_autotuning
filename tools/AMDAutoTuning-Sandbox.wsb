@@ -1,0 +1,22 @@
+<Configuration>
+  <!-- 
+    Ambiente descartável em 1-clique para teste real do AMD AutoTuning & Optimizer.
+    O Windows Sandbox sobe em ~10 segundos uma VM limpa do Windows 11 com privilégios de Admin.
+    Ao fechar a janela do Sandbox, todas as alterações são 100% destruídas sem afetar o host.
+  -->
+  <VGpu>Enable</VGpu>
+  <Networking>Enable</Networking>
+  <MemoryInMB>6144</MemoryInMB>
+  
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\GitHub\ESCTI\AMD_autotuning\dist</HostFolder>
+      <SandboxFolder>C:\AMDAutoTuning</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+
+  <LogonCommand>
+    <Command>powershell -NoProfile -Command "Start-Sleep -Seconds 2; Start-Process -FilePath 'C:\AMDAutoTuning\AMDAutoTuning.exe' -Verb RunAs"</Command>
+  </LogonCommand>
+</Configuration>

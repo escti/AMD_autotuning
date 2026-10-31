@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Gera o icone multi-resolucao do AMD AutoTuning & Optimizer (EFF5).
 .DESCRIPTION

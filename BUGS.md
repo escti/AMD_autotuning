@@ -47,7 +47,7 @@ o problema será redescoberto do zero.
 | --- | --- |
 | 🔴 Abertos | 1 |
 | 🟠 Em análise / Bloqueados | 0 |
-| 🟢 Resolvidos | 1 |
+| 🟢 Resolvidos | 2 |
 
 _Última atualização: 2026-10-31._
 
@@ -95,6 +95,31 @@ _Nenhum item aguardando investigação ou dependência externa._
 ---
 
 ## 🟢 Resolvidos
+
+### BUG-003 — Reversão de tweaks no OptimizerService continha valores hardcoded de máquina específica
+
+| Campo | Valor |
+| --- | --- |
+| **Data** | 2026-10-31 |
+| **Gravidade** | 🔴 Crítica (P0) |
+| **Área** | `Services/OptimizerService.cs` — `RevertPowerPlan`, `RevertPagefile`, `RevertMemoryManagement` |
+| **Versão testada** | 1.3.0 |
+| **Status** | ✅ Resolvido |
+
+**Comportamento observado:**
+Ao reverter os tweaks, o `OptimizerService` não lia o histórico do `SnapshotService`:
+1. `RevertPowerPlan()` forçava a restauração de um GUID hardcoded (`7dd30729-79cb...`) inexistente no PC de terceiros.
+2. `RevertPagefile()` forçava `c:\pagefile.sys 16 4096`, destruindo configurações de paginação gerenciada pelo Windows ou em outros drives (`D:\`).
+3. `RevertMemoryManagement()` forçava `LargeSystemCache = 1` (o padrão de Windows Desktop para jogos é `0`; `1` consome toda a RAM em cache de rede).
+4. `RevertIObitBloat()` tentava iniciar o serviço `IObitUnSvr` mesmo que o usuário nunca tivesse o IObit instalado.
+
+**Comportamento esperado:**
+A reversão deve restaurar o valor exato prévio capturado do sistema do usuário via `SnapshotService.GetPreviousValue(id)`.
+
+**Resolução:**
+Refatorado o `OptimizerService.cs` para a política Zero-Hardcode: detecção dinâmica do GUID original antes da troca de plano, leitura do array bruto de `PagingFiles`, preservação do `LargeSystemCache` anterior e checagem de existência de serviços antes de tentar iniciá-los.
+
+---
 
 ### BUG-001 — Release do CI falhava com 403 ao criar a GitHub Release
 
@@ -178,6 +203,7 @@ Ao rodar uma bateria, registre cada achado nesta tabela antes de detalhar:
 | --- | --- | --- | --- | --- |
 | BUG-001 | 🟠 Alta | `.github/workflows/build.yml` | Release do CI falhava com 403 (token sem `contents: write`) | ✅ Resolvido |
 | BUG-002 | 🟡 Média | `.github/workflows/build.yml` | Artefato da Release é publicado sem assinatura Authenticode | 🔴 Aberto |
+| BUG-003 | 🔴 Crítica | `Services/OptimizerService.cs` | Reversão continha valores hardcoded de máquina específica | ✅ Resolvido |
 
 ---
 

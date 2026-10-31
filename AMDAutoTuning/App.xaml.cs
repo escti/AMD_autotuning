@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
+using AMDAutoTuning.Services;
 
 namespace AMDAutoTuning
 {
@@ -10,10 +14,65 @@ namespace AMDAutoTuning
     {
         private const string PublisherMarker = "EFF5";
 
+        /// <summary>
+        /// Quando ativado via CLI (--dry-run ou --simulate), os tweaks simulam a execução
+        /// e gravam o que fariam no log sem alterar o registro ou parar serviços do Windows.
+        /// </summary>
+        public static bool IsDryRun { get; private set; }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            // Detecta modo simulação
+            IsDryRun = e.Args.Any(a => a.Equals("--dry-run", StringComparison.OrdinalIgnoreCase) ||
+                                       a.Equals("--simulate", StringComparison.OrdinalIgnoreCase));
+
+            // Configura telemetria e Crash Guard global
+            SetupExceptionHandling();
+
+            Logger.Info($"=== AMD AutoTuning v1.3.0 Iniciado === (PID: {Environment.ProcessId}, DryRun: {IsDryRun})", "BOOT");
+            Logger.Info($"Ambiente: {Environment.OSVersion} | 64-bit OS: {Environment.Is64BitOperatingSystem}", "BOOT");
+
             EnsurePublisherCertificateTrusted();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            Logger.Info($"AMD AutoTuning finalizado com código de saída {e.ApplicationExitCode}.", "SHUTDOWN");
+            base.OnExit(e);
+        }
+
+        private void SetupExceptionHandling()
+        {
+            // Captura erros na thread principal da interface WPF
+            DispatcherUnhandledException += (s, args) =>
+            {
+                Logger.Fatal("Erro não tratado na thread da UI (WPF)", args.Exception);
+                MessageBox.Show(
+                    $"Ocorreu um erro inesperado na interface:\n\n{args.Exception.Message}\n\n" +
+                    $"Um relatório de diagnóstico foi gravado em:\n{Logger.LogDirectory}",
+                    "AMD AutoTuning - Falha de Execução",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                args.Handled = true; // Impede encerramento abrupto se recuperável
+            };
+
+            // Captura erros em threads de fundo / TaskPool
+            AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+            {
+                if (args.ExceptionObject is Exception ex)
+                {
+                    Logger.Fatal("Erro fatal não tratado no AppDomain", ex);
+                }
+            };
+
+            // Captura falhas em Tasks não aguardadas
+            TaskScheduler.UnobservedTaskException += (s, args) =>
+            {
+                Logger.Error("Exceção não observada em Task assíncrona", args.Exception);
+                args.SetObserved();
+            };
         }
 
         /// <summary>

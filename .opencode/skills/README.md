@@ -9,6 +9,7 @@ Instruções reutilizáveis carregadas sob demanda pelo agente via ferramenta `s
 | [`windows-authenticode`](windows-authenticode/SKILL.md) | Assinatura Authenticode, UAC com banner azul, diagnóstico de mojibake no Subject | `scripts/sign-exe.ps1` |
 | [`wpf-singlefile-app`](wpf-singlefile-app/SKILL.md) | Publish single-file .NET WPF, ícone multi-resolução, guardas de ciclo de vida do XAML | `scripts/make-icon.ps1` |
 | [`amd-hardware-audit`](amd-hardware-audit/SKILL.md) | Coleta real de dados AMD (ReBAR, CPPC, EPP, VBS, monitores, PBO) | — |
+| [`wpf-ui-automation`](wpf-ui-automation/SKILL.md) | Automação e teste de interface WPF com UI Automation nativo do Windows e screenshots | `scripts/navigate-ui.ps1` |
 
 ## Estrutura
 
@@ -22,8 +23,12 @@ Instruções reutilizáveis carregadas sob demanda pelo agente via ferramenta `s
 │   ├── SKILL.md
 │   └── scripts/
 │       └── make-icon.ps1
-└── amd-hardware-audit/
-    └── SKILL.md
+├── amd-hardware-audit/
+│   └── SKILL.md
+└── wpf-ui-automation/
+    ├── SKILL.md
+    └── scripts/
+        └── navigate-ui.ps1
 ```
 
 ## Como carregar

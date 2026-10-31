@@ -32,6 +32,16 @@ namespace AMDAutoTuning.Services
 
         public IReadOnlyList<TweakSnapshot> History => _history;
 
+        public TweakSnapshot? GetSnapshot(string id)
+        {
+            lock (_history)
+            {
+                return _history.Find(x => x.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        public string? GetPreviousValue(string id) => GetSnapshot(id)?.PreviousValue;
+
         public void Record(string id, string title, string previousValue, string appliedValue, string revertKey)
         {
             var item = new TweakSnapshot
@@ -45,22 +55,37 @@ namespace AMDAutoTuning.Services
                 CanRevert = true
             };
 
-            // Remove existing snapshot for same id if any, then insert newest at start
-            _history.RemoveAll(x => x.Id == id);
-            _history.Insert(0, item);
-            SaveHistory();
+            lock (_history)
+            {
+                // Remove existing snapshot for same id if any, then insert newest at start
+                _history.RemoveAll(x => x.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                _history.Insert(0, item);
+                SaveHistory();
+            }
+
+            Logger.Info($"Snapshot gravado: [{id}] '{title}' -> Anterior: '{previousValue}' | Aplicado: '{appliedValue}'", "LEDGER");
         }
 
         public void Remove(string id)
         {
-            _history.RemoveAll(x => x.Id == id);
-            SaveHistory();
+            lock (_history)
+            {
+                _history.RemoveAll(x => x.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+                SaveHistory();
+            }
+
+            Logger.Info($"Snapshot removido após reversão: [{id}]", "LEDGER");
         }
 
         public void Clear()
         {
-            _history.Clear();
-            SaveHistory();
+            lock (_history)
+            {
+                _history.Clear();
+                SaveHistory();
+            }
+
+            Logger.Info("Histórico de snapshots completamente limpo.", "LEDGER");
         }
 
         private void LoadHistory()

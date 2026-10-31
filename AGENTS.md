@@ -67,6 +67,16 @@ Instruções críticas e não óbvias para agentes que trabalham neste repositó
 - O script agora detecta `Get-Process -Name AMDAutoTuning` e aborta com mensagem clara. Se aparecer esse erro, feche a janela do app.
 - Shell não elevado **não consegue** encerrar o app (que roda elevado por manifest): `Stop-Process` e `WM_CLOSE` falham com acesso negado. Peça ao usuário para fechar a janela.
 
+### 8. Reversão Dinâmica (Zero-Hardcode Policy)
+- **NUNCA** hardcodar valores de reversão em `OptimizerService.cs` (ex: tamanhos de pagefile como `16 4096`, GUIDs de plano de energia específicos de uma máquina ou suposições de `LargeSystemCache = 1`).
+- Toda reversão deve ler o valor anterior real registrado em `SnapshotService.GetPreviousValue(id)`.
+- Se o snapshot não existir, use fallbacks seguros e universais do Windows (ex: `?:\pagefile.sys` para paginação automática gerenciada pelo Windows; `LargeSystemCache = 0` que é o padrão de desktop para jogos).
+
+### 9. UIPI no UI Automation (`wpf-ui-automation`)
+- O Windows isola processos por nível de integridade (User Interface Privilege Isolation - UIPI).
+- Um PowerShell em integridade média (não elevado) **recebe 0 elementos** ao inspecionar a janela elevada do AMD AutoTuning via UI Automation, e `PrintWindow` retorna falso/tela preta.
+- Para rodar testes de interface com cliques e prints reais, o terminal **deve rodar como Administrador** ou executar dentro do Windows Sandbox (`tools\AMDAutoTuning-Sandbox.wsb`).
+
 ---
 
 ## 📚 Skills do Projeto (`.opencode/skills/`)
@@ -78,6 +88,7 @@ Carregue a skill com a ferramenta `skill` antes de mexer nessas áreas:
 | `windows-authenticode` | Assinatura, UAC, certificados, mojibake no Subject. Inclui `scripts/sign-exe.ps1`. |
 | `wpf-singlefile-app` | Publish single-file, ícone multi-resolução, crashes de ciclo de vida do XAML. Inclui `scripts/make-icon.ps1`. |
 | `amd-hardware-audit` | Coleta WMI/EventLog/powercfg de Ryzen/Radeon, ReBAR, CPPC, EPP, VBS. |
+| `wpf-ui-automation` | Navegação automatizada no WPF, cliques UIA e capturas de tela. Inclui `scripts/navigate-ui.ps1`. |
 
 ---
 
@@ -102,6 +113,7 @@ Checklist obrigatório antes do `git add`:
 - [ ] Todo bug conhecido e pendente está no `BUGS.md` (nenhum achado só na conversa)?
 - [ ] O índice de skills reflete o diretório `.opencode/skills/`?
 - [ ] As versões em `build.ps1`, `.csproj` e `CHANGELOG.md` batem?
+- [ ] O teste mestre executou com sucesso (`powershell -File .\tools\test-release.ps1`)?
 
 Commit ou push sem cumprir esta checklist é considerado erro de processo.
 
@@ -111,6 +123,7 @@ Commit ou push sem cumprir esta checklist é considerado erro de processo.
 | --- | --- |
 | O que mudou em cada versão (já entregue) | `CHANGELOG.md` |
 | Bug encontrado e **ainda não corrigido** | `BUGS.md` |
+| Como testar, validar e auditar releases | `TESTING.md` |
 | Ideia/melhoria em andamento, sem release | `CHANGELOG.md` → `[Unreleased]` → `### Adicionado` |
 | Como usar, instalar e compilar | `README.md` |
 | Armadilha técnica e procedimento de release | `AGENTS.md` |

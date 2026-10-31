@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -45,6 +47,12 @@ namespace AMDAutoTuning
             ItemsDiagnosticList.ItemsSource = DisplayedDiagnostics;
             ItemsHistoryList.ItemsSource = DisplayedHistory;
             ItemsDependencyList.ItemsSource = DependencyItems;
+
+            if (App.IsDryRun)
+            {
+                BorderDryRunBadge.Visibility = Visibility.Visible;
+                AppendLog("ATENÇÃO: Modo Simulação (--dry-run) ativo. Nenhuma alteração real será feita no registro ou serviços.");
+            }
 
             Loaded += async (s, e) => await InitializeAsync();
         }
@@ -694,12 +702,37 @@ namespace AMDAutoTuning
 
         private void AppendLog(string message)
         {
+            Logger.Info(message, "UI");
+
             Dispatcher.Invoke(() =>
             {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss");
                 TxtConsoleLog.AppendText($"[{timestamp}] {message}\r\n");
                 TxtConsoleLog.ScrollToEnd();
             });
+        }
+
+        private void OpenLogsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (Directory.Exists(Logger.LogDirectory))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = Logger.LogDirectory,
+                        UseShellExecute = true
+                    });
+                }
+                else
+                {
+                    MessageBox.Show($"Pasta de logs: {Logger.LogDirectory}", "Logs em Disco", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"Erro ao abrir pasta de logs: {ex.Message}");
+            }
         }
 
         private void WebsiteLink_Click(object sender, RoutedEventArgs e)

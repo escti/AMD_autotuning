@@ -126,14 +126,27 @@ O arquivo único compilado e independente de 59 MB estará pronto em:
 
 ---
 
+## 🧪 Testes e Simulação Segura
+
+O projeto possui salvaguardas e ferramentas completas para testar sem colocar o computador em risco:
+
+* **Modo Simulação (`--dry-run`):** Execute `.\dist\AMDAutoTuning.exe --dry-run` para interagir com toda a interface e simular a aplicação de tweaks sem que nenhuma chave de registro ou serviço seja alterado.
+* **Ambiente Descartável (Windows Sandbox):** Abra `tools\AMDAutoTuning-Sandbox.wsb` para rodar o app real em uma máquina virtual limpa e isolada do Windows em 10 segundos.
+* **Bateria de Testes em 1 Comando:** Execute `.\tools\test-release.ps1` para validar compilação, encoding de scripts, integridade da assinatura digital, sincronia Doc-First e execução segura.
+
+Consulte o guia detalhado em [`TESTING.md`](TESTING.md).
+
+---
+
 ## 📚 Documentação do Projeto
 
 | Arquivo | Conteúdo |
 | --- | --- |
 | [`AGENTS.md`](AGENTS.md) | Regras operacionais para agentes: build, armadilhas arquiteturais, processo de release e a regra **Doc-First** pré-commit. |
 | [`CHANGELOG.md`](CHANGELOG.md) | Histórico de versões no padrão *Keep a Changelog*. |
+| [`TESTING.md`](TESTING.md) | Guia completo de testes: teste mestre automatizado, modo simulação, Sandbox e automação de UI. |
 | [`BUGS.md`](BUGS.md) | Catálogo de bugs abertos e resolvidos, com gravidade, passos de reprodução e evidências. |
-| [`.opencode/skills/`](.opencode/skills/README.md) | Skills reutilizáveis: `windows-authenticode`, `wpf-singlefile-app`, `amd-hardware-audit`. |
+| [`.opencode/skills/`](.opencode/skills/README.md) | Skills reutilizáveis: `windows-authenticode`, `wpf-singlefile-app`, `amd-hardware-audit`, `wpf-ui-automation`. |
 
 > **Regra de contribuição:** todo commit ou push exige atualização prévia da documentação
 > afetada. Detalhes na seção *Doc-First Rule* do `AGENTS.md`.

@@ -9,7 +9,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
-_(sem alterações pendentes)_
+### Adicionado
+- **Suíte de Testes Automatizada (`tools\test-release.ps1`):** 6 baterias de testes em 1 comando (compilação limpa 0 warnings, encoding BOM nos scripts, sincronia Doc-First, integridade de BUGS.md, assinatura Authenticode sem mojibake e simulação `--dry-run`).
+- **Modo Simulação Segura (`--dry-run` / `--simulate`):** permite rodar o executável completo e simular a aplicação dos 13 tweaks sem tocar no registro do Windows ou parar serviços do host.
+- **Sistema de Logs Estruturado em Disco (`Services/Logger.cs`):** gravação diária em `%APPDATA%\AMDAutoTuning\Logs\app-YYYY-MM-DD.log` com telemetria de tweaks, WMI e captura de unhandled exceptions no `App.xaml.cs`.
+- **Botão "📁 Logs em Disco" na interface:** atalho direto no rodapé da janela para inspecionar os arquivos de log.
+- **Ambiente Descartável em 1-Clique (`tools\AMDAutoTuning-Sandbox.wsb`):** perfil de execução no Windows Sandbox para testes de ponta a ponta isolados da máquina de desenvolvimento.
+- **Skill de Automação de UI (`wpf-ui-automation`):** automação nativa do Windows via `UIAutomationClient` para navegação em abas, disparo de cliques e captura de screenshots (`tools\test-ui-navigation.ps1`).
+- **Guia Operacional de Testes (`TESTING.md`):** documentação da pirâmide de testes e critérios de aceite para novas releases.
+
+### Corrigido
+- **Reversão com valores hardcoded no `OptimizerService.cs` (Zero-Hardcode Policy):**
+  - `RevertPowerPlan()` agora detecta e restaura o GUID real do usuário gravado no snapshot, eliminando o GUID fixo de máquina específica.
+  - `RevertPagefile()` agora lê a configuração prévia do registro (`PagingFiles`) e a restaura fielmente, ou retorna a `?:\pagefile.sys` (padrão automático do Windows), sem forçar `16 4096`.
+  - `RevertMemoryManagement()` restaura o valor prévio do usuário (padrão desktop `0`), sem forçar `LargeSystemCache = 1`.
+  - `RevertIObitBloat()` só tenta reativar o serviço se ele já existia na máquina do usuário.
+- **Encoding de scripts auxiliares:** `tools/make-icon.ps1` salvo com UTF-8 BOM, corrigindo falha apontada pelo verificador de release.
 
 ---
 

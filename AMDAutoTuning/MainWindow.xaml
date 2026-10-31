@@ -174,6 +174,9 @@
                             <TextBlock Text="{Binding AppVersionLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                                        FontSize="10" Foreground="#94A3B8" FontWeight="SemiBold"/>
                         </Border>
+                        <Border x:Name="BorderDryRunBadge" Background="#D97706" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="🛡️ MODO SIMULAÇÃO (DRY-RUN)" FontSize="9.5" Foreground="White" FontWeight="Bold"/>
+                        </Border>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
@@ -226,7 +229,9 @@
 
                         <!-- Global Action Buttons -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Style="{StaticResource SecondaryButtonStyle}"
+                            <Button x:Name="BtnPreflight"
+                                    AutomationProperties.AutomationId="BtnPreflight"
+                                    Style="{StaticResource SecondaryButtonStyle}"
                                     Margin="0,0,10,0"
                                     Padding="10,7"
                                     Click="PreflightButton_Click"
@@ -241,7 +246,9 @@
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource SecondaryButtonStyle}" 
+                            <Button x:Name="BtnRescan"
+                                    AutomationProperties.AutomationId="BtnRescan"
+                                    Style="{StaticResource SecondaryButtonStyle}" 
                                     Margin="0,0,10,0" 
                                     Click="RescanButton_Click"
                                     ToolTip="Executar nova auditoria de todos os componentes">
@@ -251,7 +258,9 @@
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource SuccessButtonStyle}" 
+                            <Button x:Name="BtnOptimizeAll"
+                                    AutomationProperties.AutomationId="BtnOptimizeAll"
+                                    Style="{StaticResource SuccessButtonStyle}" 
                                     Click="OptimizeAllButton_Click"
                                     ToolTip="Aplica plano equilibrado, fixa pagefile em 8GB, desativa fast startup e otimiza rede">
                                 <StackPanel Orientation="Horizontal">
@@ -266,12 +275,12 @@
                 <!-- ROW 2: Custom Tab Navigation Bar -->
                 <Border Grid.Row="2" Background="#11131A" BorderBrush="#1C202B" BorderThickness="0,0,0,1" Padding="20,8">
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="TabDashboard" Style="{StaticResource TabNavButtonStyle}" Content="📊 Painel Geral" IsChecked="True" Checked="Tab_Checked"/>
-                        <RadioButton x:Name="TabOs" Style="{StaticResource TabNavButtonStyle}" Content="🖥️ Sistema Operacional &amp; Latência" Checked="Tab_Checked"/>
-                        <RadioButton x:Name="TabCpuRam" Style="{StaticResource TabNavButtonStyle}" Content="⚡ Processador &amp; RAM" Checked="Tab_Checked"/>
-                        <RadioButton x:Name="TabGpuDisplays" Style="{StaticResource TabNavButtonStyle}" Content="🎮 Placa de Vídeo &amp; Telas" Checked="Tab_Checked"/>
-                        <RadioButton x:Name="TabDriversBios" Style="{StaticResource TabNavButtonStyle}" Content="🖴 Drivers &amp; Armazenamento" Checked="Tab_Checked"/>
-                        <RadioButton x:Name="TabHistory" Style="{StaticResource TabNavButtonStyle}" Content="🛡️ Histórico &amp; Reversão" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabDashboard" AutomationProperties.AutomationId="TabDashboard" Style="{StaticResource TabNavButtonStyle}" Content="📊 Painel Geral" IsChecked="True" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabOs" AutomationProperties.AutomationId="TabOs" Style="{StaticResource TabNavButtonStyle}" Content="🖥️ Sistema Operacional &amp; Latência" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabCpuRam" AutomationProperties.AutomationId="TabCpuRam" Style="{StaticResource TabNavButtonStyle}" Content="⚡ Processador &amp; RAM" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabGpuDisplays" AutomationProperties.AutomationId="TabGpuDisplays" Style="{StaticResource TabNavButtonStyle}" Content="🎮 Placa de Vídeo &amp; Telas" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabDriversBios" AutomationProperties.AutomationId="TabDriversBios" Style="{StaticResource TabNavButtonStyle}" Content="🖴 Drivers &amp; Armazenamento" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabHistory" AutomationProperties.AutomationId="TabHistory" Style="{StaticResource TabNavButtonStyle}" Content="🛡️ Histórico &amp; Reversão" Checked="Tab_Checked"/>
                     </StackPanel>
                 </Border>
 
@@ -519,15 +528,29 @@
                                 <TextBlock x:Name="TxtLogStatus" Text="Pronto. Todos os subsistemas analisados." FontSize="10" Foreground="#38BDF8" Margin="8,0,0,0"/>
                             </StackPanel>
 
-                            <Button Grid.Column="1" Style="{StaticResource SecondaryButtonStyle}" 
-                                    Padding="10,3" FontSize="10.5" Cursor="Hand"
-                                    Click="WebsiteLink_Click"
-                                    ToolTip="Abrir o site oficial da EFF5 Automações Inteligentes (eff5.com.br)">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🌐" Margin="0,0,5,0" FontSize="11"/>
-                                    <TextBlock Text="eff5.com.br" FontWeight="Bold" Foreground="#38BDF8"/>
-                                </StackPanel>
-                            </Button>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Style="{StaticResource SecondaryButtonStyle}" 
+                                        Padding="10,3" FontSize="10.5" Cursor="Hand" Margin="0,0,8,0"
+                                        Click="OpenLogsButton_Click"
+                                        AutomationProperties.AutomationId="BtnOpenLogs"
+                                        ToolTip="Abrir a pasta onde os arquivos de log e diagnóstico são gravados (%APPDATA%\AMDAutoTuning\Logs)">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📁" Margin="0,0,5,0" FontSize="11"/>
+                                        <TextBlock Text="Logs em Disco" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Style="{StaticResource SecondaryButtonStyle}" 
+                                        Padding="10,3" FontSize="10.5" Cursor="Hand"
+                                        Click="WebsiteLink_Click"
+                                        AutomationProperties.AutomationId="BtnWebsite"
+                                        ToolTip="Abrir o site oficial da EFF5 Automações Inteligentes (eff5.com.br)">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="🌐" Margin="0,0,5,0" FontSize="11"/>
+                                        <TextBlock Text="eff5.com.br" FontWeight="Bold" Foreground="#38BDF8"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                         </Grid>
 
                         <TextBox Grid.Row="1" x:Name="TxtConsoleLog" 
