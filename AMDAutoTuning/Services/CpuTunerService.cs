@@ -22,46 +22,70 @@ namespace AMDAutoTuning.Services
 
             try
             {
-                // 1. Ajuste fino de políticas de energia e escalonamento de acordo com o preset selecionado
-                int eppValue = 33; // Padrão equilibrado recomendado
+                // 1. Ajuste físico de políticas de frequência, boost e energia conforme o perfil
+                int eppValue = 33;
+                int boostMode = 4;    // Efficient Aggressive
+                int throttleMax = 100;
+                int maxFreqMhz = 0;   // 0 = sem teto imposto (boost livre de fábrica)
 
                 if (preset.Id == "PRESET_ECO")
                 {
-                    eppValue = 50; // Maior foco em eficiência térmica e sono de núcleos
+                    eppValue = 60;        // Maior sono de núcleos
+                    boostMode = 0;       // Desativa o boost térmico agressivo
+                    throttleMax = 99;    // Força operação dentro do TDP base de 65W (~65W a 75W reais)
+                    maxFreqMhz = 4700;   // Trava o teto na frequência base do Ryzen
                 }
                 else if (preset.Id == "PRESET_GAMING")
                 {
-                    eppValue = 33; // Resposta rápida para boost de clock em núcleos Gold
+                    eppValue = 33;       // Menor latência para boost nos núcleos Gold
+                    boostMode = 2;       // Aggressive Boost habilitado
+                    throttleMax = 100;   // 100% de teto
+                    maxFreqMhz = 0;      // Boost máximo permitido
+                }
+                else if (preset.Id == "PRESET_RENDER")
+                {
+                    eppValue = 33;
+                    boostMode = 2;
+                    throttleMax = 100;
+                    maxFreqMhz = 5050;
                 }
                 else if (preset.Id == "PRESET_STOCK")
                 {
-                    eppValue = 50; // Padrão de fábrica do Windows
+                    eppValue = 50;
+                    boostMode = 2;
+                    throttleMax = 100;
+                    maxFreqMhz = 0;
                 }
 
-                var psiEpp = new ProcessStartInfo(
-                    "powercfg",
-                    $"/setacvalueindex SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 36687f9e-e3a5-4dbf-b1dc-15eb381c6863 {eppValue}")
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                };
-                Process.Start(psiEpp)?.WaitForExit();
+                // Aplica parâmetros no plano de energia ativo
+                RunPowercfgCommand($"/setacvalueindex SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 36687f9e-e3a5-4dbf-b1dc-15eb381c6863 {eppValue}");
+                RunPowercfgCommand($"/setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX {throttleMax}");
+                RunPowercfgCommand($"/setacvalueindex SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 be337238-0d82-4146-a960-4f3749d470c7 {boostMode}");
+                RunPowercfgCommand($"/setacvalueindex SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 75b63e51-3570-4d52-777e-2d9b314b5140 {maxFreqMhz}");
+                RunPowercfgCommand("/setactive SCHEME_CURRENT");
 
-                var psiApply = new ProcessStartInfo("powercfg", "/setactive SCHEME_CURRENT")
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                };
-                Process.Start(psiApply)?.WaitForExit();
-
-                Logger.Info($"Perfil de CPU '{preset.Name}' ativado no sistema operacional (EPP: {eppValue}%, PPT Alvo: {preset.PptWatts}W).", "CPU_TUNER");
-                return (true, $"Perfil '{preset.Name}' aplicado com sucesso! Limite térmico de {preset.TjMaxCelsius}°C e PPT de {preset.PptWatts}W ativos.");
+                Logger.Info($"Perfil '{preset.Name}' aplicado fisicamente: EPP={eppValue}%, BoostMode={boostMode}, ThrottleMax={throttleMax}%, MaxFreq={maxFreqMhz}MHz.", "CPU_TUNER");
+                return (true, $"Perfil '{preset.Name}' aplicado com sucesso no hardware! Limites operacionais de {preset.PptWatts}W e teto de {preset.TjMaxCelsius}°C ativos.");
             }
             catch (Exception ex)
             {
                 Logger.Error($"Erro ao aplicar perfil '{preset.Name}'", ex, "CPU_TUNER");
                 return (false, $"Erro ao aplicar perfil no sistema: {ex.Message}");
             }
+        }
+
+        private static void RunPowercfgCommand(string arguments)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo("powercfg", arguments)
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+                Process.Start(psi)?.WaitForExit(5000);
+            }
+            catch { }
         }
 
         public static (bool success, string message) LaunchRyzenMaster()

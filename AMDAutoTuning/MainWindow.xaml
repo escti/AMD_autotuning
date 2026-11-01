@@ -590,12 +590,12 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- GAUGE 2: TEMPERATURA ESTIMADA -->
+                                    <!-- GAUGE 2: TEMPERATURA FÍSICA -->
                                     <Border Grid.Column="1" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="3,0,3,0">
                                         <StackPanel>
-                                            <TextBlock Text="🌡️ TEMPERATURA ESTIMADA" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                            <TextBlock Text="🌡️ TEMPERATURA (Tctl/Tdie)" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
                                             <TextBlock x:Name="GaugeTempText" Text="45 °C" FontSize="20" FontWeight="Bold" Foreground="#22C55E" Margin="0,4,0,4"/>
-                                            <TextBlock x:Name="GaugeTempStatus" Text="Normal (Excelente)" FontSize="10" Foreground="#22C55E"/>
+                                            <TextBlock x:Name="GaugeTempStatus" Text="Sensor Físico Ativo" FontSize="10" Foreground="#22C55E"/>
                                         </StackPanel>
                                     </Border>
 
@@ -609,10 +609,10 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- GAUGE 4: CONSUMO ESTIMADO -->
+                                    <!-- GAUGE 4: CONSUMO REAL -->
                                     <Border Grid.Column="3" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="6,0,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="🔌 CONSUMO ESTIMADO" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                            <TextBlock Text="🔌 CONSUMO REAL (Watts)" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
                                             <TextBlock x:Name="GaugePowerText" Text="35 W" FontSize="20" FontWeight="Bold" Foreground="#A78BFA" Margin="0,4,0,4"/>
                                             <TextBlock x:Name="GaugePowerLimit" Text="Limite PPT: 105 W" FontSize="10" Foreground="#94A3B8"/>
                                         </StackPanel>

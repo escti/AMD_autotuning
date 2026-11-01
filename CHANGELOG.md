@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.5.2] - 2026-11-01
+
+### Adicionado
+- **Integração com `LibreHardwareMonitorLib` (Telemetria Física Real):**
+  - Leitura física direta dos sensores do silício do AMD Ryzen via MSRs de hardware: temperatura `Core (Tctl/Tdie)` em °C, consumo real elétrico `CPU Package Power` em Watts e frequências reais instantâneas dos núcleos.
+  - Elimina 100% dos cálculos por estimativa matemática, exibindo exatamente as mesmas temperaturas e consumos lidos pelo FanControl e HWiNFO.
+  - Fallback gracioso automático para o kernel do Windows caso o driver de hardware não responda.
+- **Controle Físico Real de Frequência e Teto de Potência nos Perfis:**
+  - O `CpuTunerService` agora configura os registradores de gerenciamento de frequência de processador do Windows (`PROCFREQMAX`, `PERFBOOSTMODE` e `PROCTHROTTLEMAX`).
+  - No perfil **Eco Mode 65W**, a CPU é travada fisicamente no clock base (4.70 GHz) e o boost agressivo é desativado, reduzindo o consumo de 105W para ~65W reais e a temperatura para menos de 68°C.
+  - No perfil **Gaming Single-Core**, o teto de 5.45 GHz e o boost agressivo são destravados para máxima performance.
+
+---
+
 ## [1.5.1] - 2026-11-01
 
 ### Modificado

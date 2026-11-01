@@ -1,7 +1,7 @@
 # ⚡ AMD AutoTuning & Optimizer (EFF5 Edition)
 
 [![Build & Release](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml/badge.svg)](https://github.com/escti/AMD_autotuning/actions/workflows/build.yml)
-[![Version](https://img.shields.io/badge/Version-v1.5.1-red.svg)](https://github.com/escti/AMD_autotuning/releases)
+[![Version](https://img.shields.io/badge/Version-v1.5.2-red.svg)](https://github.com/escti/AMD_autotuning/releases)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-blue.svg)](https://microsoft.com/windows)
 [![Architecture](https://img.shields.io/badge/.NET-9.0%20WPF%20Single--File-red.svg)](https://dotnet.microsoft.com/)
 [![Company](https://img.shields.io/badge/Company-EFF5%20Automa%C3%A7%C3%B5es%20Inteligentes-blueviolet.svg)](https://eff5.com.br)

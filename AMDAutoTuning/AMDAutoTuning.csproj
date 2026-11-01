@@ -10,9 +10,9 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AssemblyName>AMDAutoTuning</AssemblyName>
     <RootNamespace>AMDAutoTuning</RootNamespace>
-    <Version>1.5.1</Version>
-    <AssemblyVersion>1.5.1.0</AssemblyVersion>
-    <FileVersion>1.5.1.0</FileVersion>
+    <Version>1.5.2</Version>
+    <AssemblyVersion>1.5.2.0</AssemblyVersion>
+    <FileVersion>1.5.2.0</FileVersion>
     <Company>EFF5 Automações Inteligentes</Company>
     <Authors>EFF5 Automações Inteligentes</Authors>
     <Product>AMD AutoTuning &amp; Optimizer</Product>
@@ -36,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="System.Management" Version="10.0.14" />
   </ItemGroup>
 
