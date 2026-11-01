@@ -31,7 +31,8 @@ namespace AMDAutoTuning
             // Configura telemetria e Crash Guard global
             SetupExceptionHandling();
 
-            Logger.Info($"=== AMD AutoTuning v1.3.0 Iniciado === (PID: {Environment.ProcessId}, DryRun: {IsDryRun})", "BOOT");
+            string ver = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+            Logger.Info($"=== AMD AutoTuning v{ver} Iniciado === (PID: {Environment.ProcessId}, DryRun: {IsDryRun})", "BOOT");
             Logger.Info($"Ambiente: {Environment.OSVersion} | 64-bit OS: {Environment.Is64BitOperatingSystem}", "BOOT");
 
             EnsurePublisherCertificateTrusted();

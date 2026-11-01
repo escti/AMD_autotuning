@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -26,8 +27,15 @@ namespace AMDAutoTuning
         private bool _isInitialized = false;
         private bool _auditStarted = false;
 
+        private CpuTopology _cpuTopology = new();
+        private List<CpuTuningPreset> _cpuPresets = new();
+        private readonly CpuMetricsMonitor _metricsMonitor = new();
+        private readonly CpuStressTester _stressTester = new();
+        private CpuTuningPreset? _currentPreset;
+
         public ObservableCollection<DiagnosticItem> DisplayedDiagnostics { get; } = new();
         public ObservableCollection<DependencyItem> DependencyItems { get; } = new();
+        public ObservableCollection<CpuCoreInfo> DisplayedCoreSliders { get; } = new();
 
         /// <summary>Versao exibida no titulo, derivada do assembly (nunca fica dessincronizada).</summary>
         public string AppVersionLabel { get; } =
@@ -47,6 +55,25 @@ namespace AMDAutoTuning
             ItemsDiagnosticList.ItemsSource = DisplayedDiagnostics;
             ItemsHistoryList.ItemsSource = DisplayedHistory;
             ItemsDependencyList.ItemsSource = DependencyItems;
+
+            // Inicializacao do modulo de CPU Tuning
+            _cpuTopology = CpuTopology.Detect();
+            _cpuPresets = CpuTuningPreset.CreatePresetsFor(_cpuTopology);
+
+            ItemsCoreSliders.ItemsSource = DisplayedCoreSliders;
+            foreach (var core in _cpuTopology.Cores) { DisplayedCoreSliders.Add(core); }
+
+            _metricsMonitor.MetricsUpdated += OnMetricsUpdated;
+            _stressTester.ProgressChanged += OnStressProgressChanged;
+            _stressTester.TestCompleted += OnStressTestCompleted;
+
+            InitializeCpuTuningUi();
+
+            Closed += (s, e) =>
+            {
+                _metricsMonitor.Dispose();
+                _stressTester.Cancel();
+            };
 
             if (App.IsDryRun)
             {
@@ -354,23 +381,57 @@ namespace AMDAutoTuning
             RefreshTabFilter();
         }
 
+        private void CpuSubTab_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!_isInitialized) return;
+            RefreshTabFilter();
+        }
+
         private void RefreshTabFilter()
         {
-            if (!_isInitialized || ViewDiagnostics == null || ViewHistory == null || PanelHardwareOverview == null) return;
+            if (!_isInitialized || ViewDiagnostics == null || ViewHistory == null || ViewCpuTuning == null ||
+                PanelHardwareOverview == null || BarCpuSubNav == null) return;
 
             if (_activeTabKey == "HISTORY")
             {
+                BarCpuSubNav.Visibility = Visibility.Collapsed;
+                ViewCpuTuning.Visibility = Visibility.Collapsed;
                 ViewDiagnostics.Visibility = Visibility.Collapsed;
                 ViewHistory.Visibility = Visibility.Visible;
+                _metricsMonitor.Stop();
                 RefreshHistoryView();
                 return;
             }
 
-            ViewHistory.Visibility = Visibility.Collapsed;
-            ViewDiagnostics.Visibility = Visibility.Visible;
+            if (_activeTabKey == "CPU_RAM")
+            {
+                BarCpuSubNav.Visibility = Visibility.Visible;
+                ViewHistory.Visibility = Visibility.Collapsed;
+                PanelHardwareOverview.Visibility = Visibility.Collapsed;
 
-            // Overview cards are only shown in Dashboard tab
-            PanelHardwareOverview.Visibility = _activeTabKey == "DASHBOARD" ? Visibility.Visible : Visibility.Collapsed;
+                if (SubTabCpuTuning?.IsChecked == true)
+                {
+                    ViewDiagnostics.Visibility = Visibility.Collapsed;
+                    ViewCpuTuning.Visibility = Visibility.Visible;
+                    _metricsMonitor.Start();
+                    return;
+                }
+                else
+                {
+                    ViewDiagnostics.Visibility = Visibility.Visible;
+                    ViewCpuTuning.Visibility = Visibility.Collapsed;
+                    _metricsMonitor.Stop();
+                }
+            }
+            else
+            {
+                BarCpuSubNav.Visibility = Visibility.Collapsed;
+                ViewCpuTuning.Visibility = Visibility.Collapsed;
+                _metricsMonitor.Stop();
+                ViewHistory.Visibility = Visibility.Collapsed;
+                ViewDiagnostics.Visibility = Visibility.Visible;
+                PanelHardwareOverview.Visibility = _activeTabKey == "DASHBOARD" ? Visibility.Visible : Visibility.Collapsed;
+            }
 
             DisplayedDiagnostics.Clear();
             IEnumerable<DiagnosticItem> filtered = _activeTabKey switch
@@ -748,6 +809,310 @@ namespace AMDAutoTuning
             catch (Exception ex)
             {
                 AppendLog($"Erro ao abrir navegador: {ex.Message}");
+            }
+        }
+
+        // ====================================================================
+        // CPU TUNING, METRICS, PRESETS & STRESS TEST
+        // ====================================================================
+
+        private void InitializeCpuTuningUi()
+        {
+            if (TxtCpuModelTitle == null) return;
+
+            TxtCpuModelTitle.Text = _cpuTopology.ModelName;
+            string arch = _cpuTopology.Architecture switch
+            {
+                CpuArchitecture.Zen3_Ryzen5000 => "ZEN 3 · AM4",
+                CpuArchitecture.Zen4_Ryzen7000 => "ZEN 4 · AM5",
+                CpuArchitecture.Zen5_Ryzen9000 => "ZEN 5 · AM5",
+                _ => "AMD RYZEN"
+            };
+            TxtArchBadge.Text = arch;
+            TxtCpuTdpSummary.Text = $"TDP Base: {_cpuTopology.DefaultTdpWatts}W | PPT Fábrica: {_cpuTopology.StockPptWatts}W | TjMax Fábrica: {_cpuTopology.StockTjMaxCelsius}°C";
+
+            var gold = _cpuTopology.GoldCore;
+            var silver = _cpuTopology.SilverCore;
+            TxtGoldCoreBadge.Text = gold != null ? $"Core {gold.CoreIndex} ({gold.MaxPerformancePercent}%)" : "Core 0";
+            TxtSilverCoreBadge.Text = silver != null ? $"Core {silver.CoreIndex} ({silver.MaxPerformancePercent}%)" : "Core 1";
+
+            // Aplica o perfil recomendado inicial
+            var defaultPreset = _cpuPresets.FirstOrDefault(p => p.Id == "PRESET_BALANCED") ?? _cpuPresets[0];
+            ApplyPresetToUi(defaultPreset);
+        }
+
+        private void ApplyPresetToUi(CpuTuningPreset preset)
+        {
+            _currentPreset = preset;
+
+            ResetPresetBorders();
+            if (preset.Id == "PRESET_ECO") SetPresetBorderActive(BorderPresetEco, BtnPresetEco);
+            else if (preset.Id == "PRESET_BALANCED") SetPresetBorderActive(BorderPresetBalanced, BtnPresetBalanced);
+            else if (preset.Id == "PRESET_GAMING") SetPresetBorderActive(BorderPresetGaming, BtnPresetGaming);
+            else if (preset.Id == "PRESET_RENDER") SetPresetBorderActive(BorderPresetRender, BtnPresetRender);
+            else if (preset.Id == "PRESET_STOCK") SetPresetBorderActive(BorderPresetStock, BtnPresetStock);
+
+            if (SliderPpt != null) SliderPpt.Value = preset.PptWatts;
+            if (SliderTdc != null) SliderTdc.Value = preset.TdcAmps;
+            if (SliderEdc != null) SliderEdc.Value = preset.EdcAmps;
+            if (SliderTjMax != null) SliderTjMax.Value = preset.TjMaxCelsius;
+            if (SliderBoost != null) SliderBoost.Value = preset.BoostOverrideMhz;
+            if (SliderAllCore != null) SliderAllCore.Value = preset.AllCoreOffset;
+
+            foreach (var core in _cpuTopology.Cores)
+            {
+                if (preset.PerCoreOffsets.TryGetValue(core.CoreIndex, out int offset))
+                {
+                    core.CurveOptimizerOffset = offset;
+                }
+                else
+                {
+                    core.CurveOptimizerOffset = preset.AllCoreOffset;
+                }
+            }
+
+            AppendLog($"Preset de CPU selecionado: {preset.Name} (PPT: {preset.PptWatts}W, CO: {preset.AllCoreOffset}mV, TjMax: {preset.TjMaxCelsius}°C)");
+        }
+
+        private void ResetPresetBorders()
+        {
+            var defBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#252B3A"));
+            var defBg = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#161922"));
+            var btnBg = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B"));
+
+            var borders = new[] { BorderPresetEco, BorderPresetBalanced, BorderPresetGaming, BorderPresetRender, BorderPresetStock };
+            var buttons = new[] { BtnPresetEco, BtnPresetBalanced, BtnPresetGaming, BtnPresetRender, BtnPresetStock };
+
+            foreach (var b in borders)
+            {
+                if (b == null) continue;
+                b.BorderBrush = defBrush;
+                b.Background = defBg;
+                b.BorderThickness = new Thickness(1);
+            }
+            foreach (var btn in buttons)
+            {
+                if (btn == null) continue;
+                btn.Background = btnBg;
+                btn.Content = "Selecionar";
+            }
+        }
+
+        private void SetPresetBorderActive(Border? border, Button? btn)
+        {
+            if (border != null)
+            {
+                border.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
+                border.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1B2232"));
+                border.BorderThickness = new Thickness(1.5);
+            }
+            if (btn != null)
+            {
+                btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0284C7"));
+                btn.Content = "✓ Ativo";
+            }
+        }
+
+        private void PresetEco_Click(object sender, RoutedEventArgs e) => ApplyPresetToUi(_cpuPresets.First(p => p.Id == "PRESET_ECO"));
+        private void PresetBalanced_Click(object sender, RoutedEventArgs e) => ApplyPresetToUi(_cpuPresets.First(p => p.Id == "PRESET_BALANCED"));
+        private void PresetGaming_Click(object sender, RoutedEventArgs e) => ApplyPresetToUi(_cpuPresets.First(p => p.Id == "PRESET_GAMING"));
+        private void PresetRender_Click(object sender, RoutedEventArgs e) => ApplyPresetToUi(_cpuPresets.First(p => p.Id == "PRESET_RENDER"));
+        private void PresetStock_Click(object sender, RoutedEventArgs e) => ApplyPresetToUi(_cpuPresets.First(p => p.Id == "PRESET_STOCK"));
+
+        private void ChkAdvancedMode_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!_isInitialized || PanelAdvancedControls == null) return;
+            PanelAdvancedControls.Visibility = ChkAdvancedMode.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void CoMode_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!_isInitialized || PanelPerCoreList == null || PanelAllCoreSlider == null) return;
+            bool isPerCore = RadioCoPerCore.IsChecked == true;
+            PanelPerCoreList.Visibility = isPerCore ? Visibility.Visible : Visibility.Collapsed;
+            PanelAllCoreSlider.Visibility = isPerCore ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void SliderAllCore_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!_isInitialized || TxtAllCoreValue == null) return;
+            int val = (int)e.NewValue;
+            TxtAllCoreValue.Text = $"{val} mV";
+            if (RadioCoAllCore?.IsChecked == true)
+            {
+                foreach (var c in _cpuTopology.Cores) { c.CurveOptimizerOffset = val; }
+            }
+        }
+
+        private void SliderPpt_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!_isInitialized || TxtPptValue == null) return;
+            TxtPptValue.Text = $"{(int)e.NewValue} W";
+            if (GaugePowerLimit != null) GaugePowerLimit.Text = $"Limite PPT: {(int)e.NewValue} W";
+        }
+
+        private void SliderTdc_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!_isInitialized || TxtTdcValue == null) return;
+            TxtTdcValue.Text = $"{(int)e.NewValue} A";
+        }
+
+        private void SliderEdc_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!_isInitialized || TxtEdcValue == null) return;
+            TxtEdcValue.Text = $"{(int)e.NewValue} A";
+        }
+
+        private void SliderTjMax_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!_isInitialized || TxtTjMaxValue == null) return;
+            TxtTjMaxValue.Text = $"{(int)e.NewValue} °C";
+        }
+
+        private void SliderBoost_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!_isInitialized || TxtBoostValue == null) return;
+            TxtBoostValue.Text = $"+{(int)e.NewValue} MHz";
+        }
+
+        private async void BtnStartStress_Click(object sender, RoutedEventArgs e)
+        {
+            int duration = 30;
+            if (RadioStress60s?.IsChecked == true) duration = 60;
+            else if (RadioStress120s?.IsChecked == true) duration = 120;
+            else if (RadioStress300s?.IsChecked == true) duration = 300;
+
+            BtnStartStress.IsEnabled = false;
+            BtnStopStress.IsEnabled = true;
+            StressProgressBar.Value = 0;
+            BorderStressResult.Visibility = Visibility.Collapsed;
+            TxtStressStatus.Text = $"Executando teste intensivo de {duration} segundos em {_cpuTopology.LogicalThreads} threads...";
+
+            AppendLog($"Iniciando teste de estresse da CPU ({duration}s, {_cpuTopology.LogicalThreads} threads)...");
+
+            await _stressTester.StartAsync(duration);
+        }
+
+        private void BtnStopStress_Click(object sender, RoutedEventArgs e)
+        {
+            _stressTester.Cancel();
+            BtnStartStress.IsEnabled = true;
+            BtnStopStress.IsEnabled = false;
+            TxtStressStatus.Text = "Teste interrompido pelo usuário.";
+        }
+
+        private void OnStressProgressChanged(StressTestProgress p)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                StressProgressBar.Value = p.Percent;
+                TxtStressStatus.Text = $"Calculando... {p.Elapsed:mm\\:ss} / {p.Total:mm\\:ss} ({p.Percent}%)";
+                TxtStressOps.Text = $"{p.OperationsPerSecond:N0} ops/s";
+            });
+        }
+
+        private void OnStressTestCompleted(StressTestResult r)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                BtnStartStress.IsEnabled = true;
+                BtnStopStress.IsEnabled = false;
+                StressProgressBar.Value = 100;
+                TxtStressStatus.Text = "Teste finalizado.";
+                TxtStressOps.Text = $"{r.TotalCalculations:N0} ops totais";
+
+                BorderStressResult.Visibility = Visibility.Visible;
+                if (r.Passed)
+                {
+                    BorderStressResult.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1B2B20"));
+                    BorderStressResult.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E"));
+                    TxtStressResultMsg.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E"));
+                    TxtStressResultMsg.Text = r.Summary;
+                    AppendLog("Teste de estresse APROVADO com estabilidade total.");
+                }
+                else
+                {
+                    BorderStressResult.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#331818"));
+                    BorderStressResult.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+                    TxtStressResultMsg.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+                    TxtStressResultMsg.Text = r.Summary;
+                    AppendLog($"Aviso: Instabilidade detectada no teste de estresse ({r.FailureMessages.Count} erros).");
+                }
+            });
+        }
+
+        private void OnMetricsUpdated(CpuMetricsSnapshot s)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (GaugeUsageText != null) GaugeUsageText.Text = $"{s.CpuUsagePercent:F1} %";
+                if (GaugeUsageBar != null) GaugeUsageBar.Value = s.CpuUsagePercent;
+                if (GaugeTempText != null) GaugeTempText.Text = $"{s.TemperatureCelsius:F0} °C";
+                if (GaugeTempStatus != null)
+                {
+                    GaugeTempStatus.Text = s.TemperatureCelsius >= 85 ? "Atenção (TjMax Próximo)" : s.TemperatureCelsius >= 75 ? "Normal (Carga)" : "Normal (Excelente)";
+                    GaugeTempStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(s.StatusColor));
+                }
+                if (GaugeTempText != null)
+                {
+                    GaugeTempText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(s.StatusColor));
+                }
+                if (GaugeClockText != null) GaugeClockText.Text = $"{s.MaxClockGhz:F2} GHz";
+                if (GaugePowerText != null) GaugePowerText.Text = $"{s.PowerWatts:F0} W";
+            });
+        }
+
+        private void BtnApplyEpp_Click(object sender, RoutedEventArgs e)
+        {
+            var res = CpuTunerService.ApplyWindowsEppTuning(_optimizer.IsDryRun);
+            AppendLog(res.message);
+            MessageBox.Show(res.message, res.success ? "Sucesso" : "Erro", MessageBoxButton.OK,
+                res.success ? MessageBoxImage.Information : MessageBoxImage.Error);
+        }
+
+        private void BtnGenerateBiosGuide_Click(object sender, RoutedEventArgs e)
+        {
+            int ppt = (int)SliderPpt.Value;
+            int tdc = (int)SliderTdc.Value;
+            int edc = (int)SliderEdc.Value;
+            int tjMax = (int)SliderTjMax.Value;
+            int boost = (int)SliderBoost.Value;
+            bool isPerCore = RadioCoPerCore.IsChecked == true;
+            int allCore = (int)SliderAllCore.Value;
+            int[] perCore = _cpuTopology.Cores.Select(c => c.CurveOptimizerOffset).ToArray();
+
+            string guide = CpuTunerService.GenerateBiosGuide(_cpuTopology, _overview.Motherboard, ppt, tdc, edc, tjMax, boost, isPerCore, allCore, perCore);
+            ShowModal($"Roteiro de BIOS — {_overview.Motherboard}", guide);
+        }
+
+        private void BtnExportProfile_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                int ppt = (int)SliderPpt.Value;
+                int tdc = (int)SliderTdc.Value;
+                int edc = (int)SliderEdc.Value;
+                int tjMax = (int)SliderTjMax.Value;
+                int boost = (int)SliderBoost.Value;
+                bool isPerCore = RadioCoPerCore.IsChecked == true;
+                int allCore = (int)SliderAllCore.Value;
+                int[] perCore = _cpuTopology.Cores.Select(c => c.CurveOptimizerOffset).ToArray();
+
+                string content = CpuTunerService.GenerateBiosGuide(_cpuTopology, _overview.Motherboard, ppt, tdc, edc, tjMax, boost, isPerCore, allCore, perCore);
+
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string profileDir = Path.Combine(appData, "AMDAutoTuning", "Profiles");
+                Directory.CreateDirectory(profileDir);
+                string file = Path.Combine(profileDir, $"perfil_cpu_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+                File.WriteAllText(file, content, Encoding.UTF8);
+
+                AppendLog($"Perfil exportado com sucesso: {file}");
+                MessageBox.Show($"Perfil exportado para:\n\n{file}\n\nVocê pode copiar este arquivo para um pendrive ou celular para consultar enquanto estiver no Setup da BIOS.",
+                    "Perfil Exportado", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"Erro ao exportar perfil: {ex.Message}");
             }
         }
 

@@ -7,11 +7,23 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-## [Unreleased]
+## [1.4.0] - 2026-11-01
 
 ### Adicionado
+- **Central de CPU Tuning & Curve Optimizer (sub-aba em *Processador & RAM*):**
+  - **Detecção dinâmica de silício a cada boot:** identifica arquiteturas AMD Ryzen 5000 (Zen 3 / AM4) e 7000 (Zen 4 / AM5), classe de TDP (65W, 105W, 120W X3D, 170W) e inspeciona o Event ID 55 para classificar dinamicamente os núcleos ⭐ Gold e 🥈 Silver.
+  - **Mostradores em tempo real (4 Gauges):** Uso Total da CPU (%), Temperatura Estimada (°C com cor dinâmica), Clock de Pico (GHz) e Consumo Estimado / Limite PPT (W).
+  - **5 Receitas Prontas da Comunidade (1-clique):**
+    1. 🌿 *Eco Mode 65W* (88W PPT / -25 CO / 75°C) — silêncio e eficiência com queda inferior a 2% em jogos.
+    2. ⚖️ *Balanced Sweet Spot* (105W PPT / -20 CO / 85°C) — o ponto ideal recomendado para 100% de boost com ~15°C a menos.
+    3. 🎯 *Competitive Gaming* (130W PPT / -15 Gold/Silver e -25 Demais / +200MHz) — foco em máximo 1% Low FPS.
+    4. 🚀 *Multi-Thread Heavy* (PPT Stock / -15 CO / 88°C) — máxima sustentação all-core para render e Blender.
+    5. 🛡️ *Padrão de Fábrica (Stock AMD)* — reset de segurança oficial para testes A/B.
+  - **Motor de Teste de Estresse Nativo:** avaliação de estabilidade multi-thread com duração configurável (30s, 1m, 2m, 5m), cálculos matriciais de paridade e detecção precisa de instabilidade de undervolt.
+  - **Modo Avançado com Sliders e Explicações Didáticas:** ajuste manual de Curve Optimizer (All-Core e Per-Core com destaque para Gold/Silver), limites PPT, TDC, EDC, TjMax térmico e Boost Override, com comentários educativos abaixo de cada controle.
+  - **Geração de Roteiro de BIOS e Exportação:** instruções adaptadas para a placa-mãe detectada (MSI, ASUS, Gigabyte, ASRock) e exportação de perfil em `.txt`.
 - **Suíte de Testes Automatizada (`tools\test-release.ps1`):** 6 baterias de testes em 1 comando (compilação limpa 0 warnings, encoding BOM nos scripts, sincronia Doc-First, integridade de BUGS.md, assinatura Authenticode sem mojibake e simulação `--dry-run`).
-- **Modo Simulação Segura (`--dry-run` / `--simulate`):** permite rodar o executável completo e simular a aplicação dos 13 tweaks sem tocar no registro do Windows ou parar serviços do host.
+- **Modo Simulação Segura (`--dry-run` / `--simulate`):** permite rodar o executável completo e simular a aplicação de tweaks sem tocar no registro do Windows ou parar serviços do host.
 - **Sistema de Logs Estruturado em Disco (`Services/Logger.cs`):** gravação diária em `%APPDATA%\AMDAutoTuning\Logs\app-YYYY-MM-DD.log` com telemetria de tweaks, WMI e captura de unhandled exceptions no `App.xaml.cs`.
 - **Botão "📁 Logs em Disco" na interface:** atalho direto no rodapé da janela para inspecionar os arquivos de log.
 - **Ambiente Descartável em 1-Clique (`tools\AMDAutoTuning-Sandbox.wsb`):** perfil de execução no Windows Sandbox para testes de ponta a ponta isolados da máquina de desenvolvimento.

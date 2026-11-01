@@ -286,8 +286,24 @@
 
                 <!-- ROW 3: Tab Content Area -->
                 <Grid Grid.Row="3">
-                    <!-- VIEW A: DIAGNOSTIC ITEMS (Used for Dashboard, OS, CPU_RAM, GPU_DISPLAYS, DRIVERS_BIOS) -->
-                    <Grid x:Name="ViewDiagnostics" Visibility="Visible">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- Sub-Navigation for CPU & RAM -->
+                        <RowDefinition Height="*" />    <!-- Content Area -->
+                    </Grid.RowDefinitions>
+
+                    <!-- SUB-NAVIGATION BAR (Visible ONLY when in CPU & RAM tab) -->
+                    <Border x:Name="BarCpuSubNav" Grid.Row="0" Background="#13161F" BorderBrush="#1C212D" BorderThickness="0,0,0,1" Padding="20,6" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="SubTabCpuDiagnostics" AutomationProperties.AutomationId="SubTabCpuDiagnostics"
+                                         Style="{StaticResource TabNavButtonStyle}" Content="📋 Diagnóstico &amp; Hardware" IsChecked="True" Checked="CpuSubTab_Checked"/>
+                            <RadioButton x:Name="SubTabCpuTuning" AutomationProperties.AutomationId="SubTabCpuTuning"
+                                         Style="{StaticResource TabNavButtonStyle}" Content="🎯 PBO &amp; Curve Optimizer Tuning" Checked="CpuSubTab_Checked"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1">
+                        <!-- VIEW A: DIAGNOSTIC ITEMS (Used for Dashboard, OS, CPU_RAM, GPU_DISPLAYS, DRIVERS_BIOS) -->
+                        <Grid x:Name="ViewDiagnostics" Visibility="Visible">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" /> <!-- Hardware Overview Cards (visible only on Dashboard) -->
                             <RowDefinition Height="*" />    <!-- Items List -->
@@ -507,7 +523,440 @@
                             </ItemsControl>
                         </ScrollViewer>
                     </Grid>
+
+                    <!-- VIEW C: DEDICATED CPU TUNING TAB (Sub-tab of CPU & RAM) -->
+                    <Grid x:Name="ViewCpuTuning" Visibility="Collapsed">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,14">
+                            <StackPanel MaxWidth="1100">
+                                <!-- 1. SILICON LOTTERY & ARCHITECTURE BANNER -->
+                                <Border Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="⚡" FontSize="15" Margin="0,0,6,0"/>
+                                                <TextBlock x:Name="TxtCpuModelTitle" Text="AMD Ryzen Processor" FontSize="14" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                                <Border x:Name="BorderArchBadge" Background="#EF4444" CornerRadius="4" Padding="6,1" Margin="8,0,0,0">
+                                                    <TextBlock x:Name="TxtArchBadge" Text="ZEN 4 · AM5" FontSize="9.5" FontWeight="Bold" Foreground="White"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock x:Name="TxtCpuTdpSummary" Text="TDP Base: 105W | PPT Fábrica: 142W | TjMax Fábrica: 95°C" FontSize="11" Foreground="#94A3B8" Margin="0,4,0,0"/>
+                                        </StackPanel>
+
+                                        <!-- Silicon Ranking Badges -->
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Background="#252A36" BorderBrush="#FACC15" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,8,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="⭐" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                    <StackPanel>
+                                                        <TextBlock Text="NÚCLEO GOLD" FontSize="9" FontWeight="Bold" Foreground="#FACC15"/>
+                                                        <TextBlock x:Name="TxtGoldCoreBadge" Text="Core 1 (100%)" FontSize="11" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Background="#252A36" BorderBrush="#94A3B8" BorderThickness="1" CornerRadius="6" Padding="10,6">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="🥈" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                    <StackPanel>
+                                                        <TextBlock Text="NÚCLEO SILVER" FontSize="9" FontWeight="Bold" Foreground="#CBD5E1"/>
+                                                        <TextBlock x:Name="TxtSilverCoreBadge" Text="Core 4 (98%)" FontSize="11" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- 2. MOSTRADORES EM TEMPO REAL (4 GAUGES) -->
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- GAUGE 1: USO TOTAL CPU -->
+                                    <Border Grid.Column="0" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,6,0">
+                                        <StackPanel>
+                                            <TextBlock Text="⚡ USO TOTAL CPU" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                            <TextBlock x:Name="GaugeUsageText" Text="0.0 %" FontSize="20" FontWeight="Bold" Foreground="#38BDF8" Margin="0,4,0,4"/>
+                                            <ProgressBar x:Name="GaugeUsageBar" Value="0" Maximum="100" Height="4" Background="#242B3B" Foreground="#38BDF8" BorderThickness="0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- GAUGE 2: TEMPERATURA ESTIMADA -->
+                                    <Border Grid.Column="1" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="3,0,3,0">
+                                        <StackPanel>
+                                            <TextBlock Text="🌡️ TEMPERATURA ESTIMADA" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                            <TextBlock x:Name="GaugeTempText" Text="45 °C" FontSize="20" FontWeight="Bold" Foreground="#22C55E" Margin="0,4,0,4"/>
+                                            <TextBlock x:Name="GaugeTempStatus" Text="Normal (Excelente)" FontSize="10" Foreground="#22C55E"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- GAUGE 3: CLOCK DE PICO -->
+                                    <Border Grid.Column="2" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="3,0,3,0">
+                                        <StackPanel>
+                                            <TextBlock Text="🚀 CLOCK DE PICO" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                            <TextBlock x:Name="GaugeClockText" Text="4.70 GHz" FontSize="20" FontWeight="Bold" Foreground="#FACC15" Margin="0,4,0,4"/>
+                                            <TextBlock Text="Precision Boost 2 Ativo" FontSize="10" Foreground="#94A3B8"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- GAUGE 4: CONSUMO ESTIMADO -->
+                                    <Border Grid.Column="3" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="6,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="🔌 CONSUMO ESTIMADO" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                            <TextBlock x:Name="GaugePowerText" Text="35 W" FontSize="20" FontWeight="Bold" Foreground="#A78BFA" Margin="0,4,0,4"/>
+                                            <TextBlock x:Name="GaugePowerLimit" Text="Limite PPT: 105 W" FontSize="10" Foreground="#94A3B8"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- 3. RECEITAS PRONTAS DA COMUNIDADE (5 PRESETS) -->
+                                <TextBlock Text="RECEITAS PRONTAS DA COMUNIDADE (1-CLIQUE)" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- PRESET 1: ECO -->
+                                    <Border x:Name="BorderPresetEco" Grid.Column="0" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="0,0,4,0">
+                                        <StackPanel>
+                                            <TextBlock Text="🌿 Eco 65W" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="Silêncio &amp; Frio" FontSize="10" Foreground="#22C55E" Margin="0,2,0,6"/>
+                                            <TextBlock x:Name="TxtPresetEcoStats" Text="PPT: 88W | CO: -25" FontSize="10" Foreground="#94A3B8"/>
+                                            <Button x:Name="BtnPresetEco" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                                    Click="PresetEco_Click" AutomationProperties.AutomationId="BtnPresetEco"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- PRESET 2: BALANCED -->
+                                    <Border x:Name="BorderPresetBalanced" Grid.Column="1" Background="#1B2232" BorderBrush="#38BDF8" BorderThickness="1.5" CornerRadius="8" Padding="10,12" Margin="3,0,3,0">
+                                        <StackPanel>
+                                            <TextBlock Text="⚖️ Balanced" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="Recomendado" FontSize="10" Foreground="#38BDF8" Margin="0,2,0,6"/>
+                                            <TextBlock x:Name="TxtPresetBalancedStats" Text="PPT: 105W | CO: -20" FontSize="10" Foreground="#94A3B8"/>
+                                            <Button x:Name="BtnPresetBalanced" Style="{StaticResource ActionButtonStyle}" Background="#0284C7" Content="✓ Ativo" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                                    Click="PresetBalanced_Click" AutomationProperties.AutomationId="BtnPresetBalanced"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- PRESET 3: GAMING -->
+                                    <Border x:Name="BorderPresetGaming" Grid.Column="2" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="3,0,3,0">
+                                        <StackPanel>
+                                            <TextBlock Text="🎯 Gaming" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="FPS &amp; 1% Low" FontSize="10" Foreground="#FACC15" Margin="0,2,0,6"/>
+                                            <TextBlock x:Name="TxtPresetGamingStats" Text="PPT: 130W | +200MHz" FontSize="10" Foreground="#94A3B8"/>
+                                            <Button x:Name="BtnPresetGaming" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                                    Click="PresetGaming_Click" AutomationProperties.AutomationId="BtnPresetGaming"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- PRESET 4: RENDER -->
+                                    <Border x:Name="BorderPresetRender" Grid.Column="3" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="3,0,3,0">
+                                        <StackPanel>
+                                            <TextBlock Text="🚀 Multi-Thread" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="Render &amp; Heavy" FontSize="10" Foreground="#A78BFA" Margin="0,2,0,6"/>
+                                            <TextBlock x:Name="TxtPresetRenderStats" Text="PPT: 142W | CO: -15" FontSize="10" Foreground="#94A3B8"/>
+                                            <Button x:Name="BtnPresetRender" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                                    Click="PresetRender_Click" AutomationProperties.AutomationId="BtnPresetRender"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- PRESET 5: STOCK -->
+                                    <Border x:Name="BorderPresetStock" Grid.Column="4" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="4,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="🛡️ Stock AMD" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="Padrão Fábrica" FontSize="10" Foreground="#94A3B8" Margin="0,2,0,6"/>
+                                            <TextBlock x:Name="TxtPresetStockStats" Text="Stock | CO: 0" FontSize="10" Foreground="#94A3B8"/>
+                                            <Button x:Name="BtnPresetStock" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                                    Click="PresetStock_Click" AutomationProperties.AutomationId="BtnPresetStock"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- 4. MOTOR DE TESTE DE ESTRESSE -->
+                                <Border Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,16">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="🔬 TESTE DE ESTABILIDADE DA CPU (STRESS TEST)" FontSize="13" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                                <TextBlock Text="Calcula matrizes complexas e paridade em todas as threads para validar se o Curve Optimizer não causa erros de ponto flutuante."
+                                                           FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Duração: " FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <RadioButton x:Name="RadioStress30s" Content="30s" IsChecked="True" Foreground="#CBD5E1" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <RadioButton x:Name="RadioStress60s" Content="1m" Foreground="#CBD5E1" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <RadioButton x:Name="RadioStress120s" Content="2m" Foreground="#CBD5E1" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <RadioButton x:Name="RadioStress300s" Content="5m" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Controls & Progress -->
+                                        <Grid Grid.Row="1" Margin="0,12,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                                <Button x:Name="BtnStartStress" Style="{StaticResource SuccessButtonStyle}" Content="⚡ Iniciar Teste"
+                                                        Padding="14,6" Margin="0,0,8,0" Click="BtnStartStress_Click" AutomationProperties.AutomationId="BtnStartStress"/>
+                                                <Button x:Name="BtnStopStress" Style="{StaticResource RevertButtonStyle}" Content="⏹ Parar"
+                                                        IsEnabled="False" Padding="12,6" Click="BtnStopStress_Click" AutomationProperties.AutomationId="BtnStopStress"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                <ProgressBar x:Name="StressProgressBar" Value="0" Maximum="100" Height="8" Background="#242B3B" Foreground="#22C55E" BorderThickness="0"/>
+                                                <Grid Margin="0,4,0,0">
+                                                    <TextBlock x:Name="TxtStressStatus" Text="Pronto para testar estabilidade." FontSize="10.5" Foreground="#94A3B8"/>
+                                                    <TextBlock x:Name="TxtStressOps" Text="" FontSize="10.5" Foreground="#38BDF8" HorizontalAlignment="Right"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Result Alert Box -->
+                                        <Border x:Name="BorderStressResult" Grid.Row="2" Background="#1B2B20" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="6"
+                                                Padding="12,8" Margin="0,10,0,0" Visibility="Collapsed">
+                                            <TextBlock x:Name="TxtStressResultMsg" Text="✓ Estabilidade Aprovada!" FontSize="11" FontWeight="SemiBold" Foreground="#22C55E"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- 5. MODO AVANÇADO (CUSTOMIZAÇÃO MANUAL COM SLIDERS E EXPLICAÇÕES DIDÁTICAS) -->
+                                <Border Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <CheckBox x:Name="ChkAdvancedMode" Content="🛠️ Habilitar Customização Manual Avançada (Sliders Núcleo a Núcleo e Limites PBO)"
+                                                  FontSize="13" FontWeight="Bold" Foreground="#F8FAFC"
+                                                  Checked="ChkAdvancedMode_Changed" Unchecked="ChkAdvancedMode_Changed" AutomationProperties.AutomationId="ChkAdvancedMode"/>
+                                        <TextBlock Text="Permite afinar offsets de tensão específicos para cada núcleo de acordo com a loteria do silício, além de ajustar PPT, TDC, EDC e TjMax."
+                                                   FontSize="11" Foreground="#94A3B8" Margin="22,3,0,12"/>
+
+                                        <StackPanel x:Name="PanelAdvancedControls" Visibility="Collapsed" Margin="0,6,0,0">
+                                            <!-- CURVE OPTIMIZER MODE SELECTOR -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                                <TextBlock Text="Modo do Curve Optimizer: " FontSize="11.5" FontWeight="SemiBold" Foreground="#E2E8F0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <RadioButton x:Name="RadioCoPerCore" Content="Por Núcleo (Per-Core - Recomendado para Gold/Silver)" IsChecked="True"
+                                                             Foreground="#CBD5E1" Margin="0,0,14,0" Checked="CoMode_Changed"/>
+                                                <RadioButton x:Name="RadioCoAllCore" Content="Todos os Núcleos Igual (All-Core)"
+                                                             Foreground="#CBD5E1" Checked="CoMode_Changed"/>
+                                            </StackPanel>
+
+                                            <!-- PER-CORE SLIDERS LIST -->
+                                            <Border x:Name="PanelPerCoreList" Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,14">
+                                                <StackPanel>
+                                                    <TextBlock Text="OFFSETS DO CURVE OPTIMIZER POR NÚCLEO (MAGNITUDE NEGATIVA EM mV):" FontSize="10" FontWeight="Bold" Foreground="#64748B" Margin="0,0,0,8"/>
+                                                    <ItemsControl x:Name="ItemsCoreSliders">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Margin="0,4,0,4">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="130"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="55"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0" Text="{Binding CoreLabel}" FontWeight="SemiBold" FontSize="11.5" Foreground="#F8FAFC" VerticalAlignment="Center"/>
+                                                                    <Border Grid.Column="1" Background="{Binding BadgeColor}" CornerRadius="3" Padding="5,1" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding BadgeText}" FontSize="8.5" FontWeight="Bold" Foreground="#0F172A"/>
+                                                                    </Border>
+                                                                    <Slider Grid.Column="2" Minimum="-30" Maximum="0" Value="{Binding CurveOptimizerOffset, Mode=TwoWay}"
+                                                                            TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="3" Text="{Binding OffsetDisplay}" FontWeight="Bold" FontSize="11.5" Foreground="#38BDF8"
+                                                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="💬 Dica Didática: Núcleos Gold atingem os maiores clocks e já trabalham perto do limite de tensão; use offsets menores (-15 a -20). Núcleos normais suportam -25 a -30 com folga."
+                                                               FontSize="10.5" Foreground="#64748B" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- ALL-CORE SLIDER -->
+                                            <Border x:Name="PanelAllCoreSlider" Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,14" Visibility="Collapsed">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="60"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="All-Core Offset: " FontWeight="SemiBold" FontSize="12" Foreground="#F8FAFC" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                        <Slider x:Name="SliderAllCore" Grid.Column="1" Minimum="-30" Maximum="0" Value="-20"
+                                                                TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderAllCore_ValueChanged" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="TxtAllCoreValue" Grid.Column="2" Text="-20 mV" FontWeight="Bold" FontSize="12" Foreground="#38BDF8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="💬 O que faz: Aplica o mesmo recuo de tensão para todos os núcleos. Mais simples, porém menos otimizado que o ajuste por núcleo."
+                                                               FontSize="10.5" Foreground="#64748B" Margin="0,6,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- PPT SLIDER -->
+                                            <Border Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="PPT - Package Power Tracking: " FontWeight="SemiBold" FontSize="11.5" Foreground="#F8FAFC" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                        <Slider x:Name="SliderPpt" Grid.Column="1" Minimum="65" Maximum="230" Value="105"
+                                                                TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderPpt_ValueChanged" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="TxtPptValue" Grid.Column="2" Text="105 W" FontWeight="Bold" FontSize="11.5" Foreground="#A78BFA" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="💬 O que faz: O teto máximo de consumo elétrico da CPU (em Watts). Reduzir de 142W para 105W ou 88W derruba a temperatura em até 20°C sem perda em jogos."
+                                                               FontSize="10.5" Foreground="#64748B" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- TDC SLIDER -->
+                                            <Border Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="TDC - Thermal Design Current: " FontWeight="SemiBold" FontSize="11.5" Foreground="#F8FAFC" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                        <Slider x:Name="SliderTdc" Grid.Column="1" Minimum="50" Maximum="180" Value="85"
+                                                                TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderTdc_ValueChanged" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="TxtTdcValue" Grid.Column="2" Text="85 A" FontWeight="Bold" FontSize="11.5" Foreground="#38BDF8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="💬 O que faz: Limite de corrente sustentada em Amperes quando a CPU atinge equilíbrio térmico em tarefas pesadas."
+                                                               FontSize="10.5" Foreground="#64748B" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- EDC SLIDER -->
+                                            <Border Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="EDC - Electrical Design Current: " FontWeight="SemiBold" FontSize="11.5" Foreground="#F8FAFC" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                        <Slider x:Name="SliderEdc" Grid.Column="1" Minimum="80" Maximum="250" Value="130"
+                                                                TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderEdc_ValueChanged" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="TxtEdcValue" Grid.Column="2" Text="130 A" FontWeight="Bold" FontSize="11.5" Foreground="#FACC15" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="💬 O que faz: Limite de corrente para picos elétricos transientes rápidos (arrancadas de boost instantâneo)."
+                                                               FontSize="10.5" Foreground="#64748B" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- TJMAX SLIDER -->
+                                            <Border Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="TjMax - Temperatura Limite de Operação: " FontWeight="SemiBold" FontSize="11.5" Foreground="#F8FAFC" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                        <Slider x:Name="SliderTjMax" Grid.Column="1" Minimum="70" Maximum="95" Value="85"
+                                                                TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderTjMax_ValueChanged" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="TxtTjMaxValue" Grid.Column="2" Text="85 °C" FontWeight="Bold" FontSize="11.5" Foreground="#22C55E" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="💬 O que faz: Trava a temperatura máxima permitida. O Zen 4 de fábrica busca 95°C; travar em 85°C protege os componentes com coolers a ar e silencia as ventoinhas."
+                                                               FontSize="10.5" Foreground="#64748B" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- BOOST OVERRIDE SLIDER -->
+                                            <Border Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="12,8">
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="CPU Boost Clock Override: " FontWeight="SemiBold" FontSize="11.5" Foreground="#F8FAFC" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                                        <Slider x:Name="SliderBoost" Grid.Column="1" Minimum="0" Maximum="200" Value="0"
+                                                                TickFrequency="25" IsSnapToTickEnabled="True" ValueChanged="SliderBoost_ValueChanged" VerticalAlignment="Center"/>
+                                                        <TextBlock x:Name="TxtBoostValue" Grid.Column="2" Text="+0 MHz" FontWeight="Bold" FontSize="11.5" Foreground="#EF4444" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="💬 O que faz: Adiciona até +200 MHz no teto de frequência de pico para jogos competitivos. Em CPUs X3D este ajuste fica travado em 0 por segurança de V-Cache."
+                                                               FontSize="10.5" Foreground="#64748B" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 6. BARRA DE AÇÕES -->
+                                <Border Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="16,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="AÇÕES E APLICAÇÃO DO TUNING" FontSize="12" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="Aplique as políticas do Windows instantaneamente ou gere o guia passo a passo da BIOS." FontSize="10.5" Foreground="#94A3B8"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Style="{StaticResource SuccessButtonStyle}" Margin="0,0,8,0" Click="BtnApplyEpp_Click"
+                                                    AutomationProperties.AutomationId="BtnApplyEpp" ToolTip="Configura o plano Equilibrado e EPP 33 para permitir sono CC6">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="⚡" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Aplicar EPP no Windows"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0" Click="BtnGenerateBiosGuide_Click"
+                                                    AutomationProperties.AutomationId="BtnGenerateBiosGuide" ToolTip="Gera as instruções da BIOS com os valores calculados">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📋" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Gerar Roteiro BIOS"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button Style="{StaticResource SecondaryButtonStyle}" Click="BtnExportProfile_Click"
+                                                    AutomationProperties.AutomationId="BtnExportProfile" ToolTip="Salva um resumo de texto do perfil em disco">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📁" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Exportar Perfil"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
+            </Grid>
 
                 <!-- ROW 4: Console Log Footer -->
                 <Border Grid.Row="4" Background="#0F1117" BorderBrush="#1C212D" BorderThickness="0,1,0,0" Padding="14,10">
