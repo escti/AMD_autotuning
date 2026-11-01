@@ -77,6 +77,17 @@ Instruções críticas e não óbvias para agentes que trabalham neste repositó
 - Um PowerShell em integridade média (não elevado) **recebe 0 elementos** ao inspecionar a janela elevada do AMD AutoTuning via UI Automation, e `PrintWindow` retorna falso/tela preta.
 - Para rodar testes de interface com cliques e prints reais, o terminal **deve rodar como Administrador** ou executar dentro do Windows Sandbox (`tools\AMDAutoTuning-Sandbox.wsb`).
 
+### 10. Telemetria Física Real vs Fórmulas Estimativas (Zero-Heuristics)
+- **NUNCA** utilize fórmulas matemáticas estimativas (ex: `42 + uso * 0.42`) para simular temperatura ou consumo elétrico.
+- Em plataformas AM5/Zen 4, o WMI padrão (`MSAcpi_ThermalZoneTemperature`) não entrega a temperatura real do silício.
+- Sempre utilize a biblioteca `LibreHardwareMonitorLib` para ler os sensores físicos de registradores MSR de hardware: `Core (Tctl/Tdie)` para temperatura real e `CPU Package Power` para consumo em Watts. Se o sensor falhar, exiba indicação clara de indisponibilidade em vez de inventar números.
+
+### 11. Limitação de Frequência e Boost no Windows (PPM)
+- Para aplicar perfis de tuning térmico (como o *Eco Mode 65W*) sem depender de gravação de BIOS, utilize os registradores do Windows Processor Power Management:
+  `powercfg /setacvalueindex SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 75b63e51-3570-4d52-777e-2d9b314b5140 {maxFreqMhz}` (`PROCFREQMAX`) e
+  `powercfg /setacvalueindex SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 be337238-0d82-4146-a960-4f3749d470c7 {boostMode}` (`PERFBOOSTMODE`).
+  Isso impõe uma trava física na frequência da CPU e no consumo do socket imediatamente em runtime.
+
 ---
 
 ## 📚 Skills do Projeto (`.opencode/skills/`)
@@ -89,6 +100,7 @@ Carregue a skill com a ferramenta `skill` antes de mexer nessas áreas:
 | `wpf-singlefile-app` | Publish single-file, ícone multi-resolução, crashes de ciclo de vida do XAML. Inclui `scripts/make-icon.ps1`. |
 | `amd-hardware-audit` | Coleta WMI/EventLog/powercfg de Ryzen/Radeon, ReBAR, CPPC, EPP, VBS. |
 | `wpf-ui-automation` | Navegação automatizada no WPF, cliques UIA e capturas de tela. Inclui `scripts/navigate-ui.ps1`. |
+| `dotnet-hardware-telemetry` | Leitura física de sensores (Tctl/Tdie, Watts, Clocks) via LibreHardwareMonitorLib. Inclui `scripts/probe-sensors.ps1`. |
 
 ---
 

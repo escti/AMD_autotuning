@@ -10,6 +10,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ## [1.5.2] - 2026-11-01
 
 ### Adicionado
+- **Nova Skill `dotnet-hardware-telemetry` (`.opencode/skills/`):**
+  - Guia completo e script auxiliar `probe-sensors.ps1` para integração de monitoramento físico de hardware via `LibreHardwareMonitorLib` em aplicações desktop .NET/C# no Windows.
+- **Novas Regras de Engenharia no `AGENTS.md`:**
+  - Regra 10: Zero-Heuristics (proibição de estimativas matemáticas de temperatura/consumo).
+  - Regra 11: Limitação física de frequência e boost via PPM do Windows (`PROCFREQMAX` e `PERFBOOSTMODE`).
 - **Integração com `LibreHardwareMonitorLib` (Telemetria Física Real):**
   - Leitura física direta dos sensores do silício do AMD Ryzen via MSRs de hardware: temperatura `Core (Tctl/Tdie)` em °C, consumo real elétrico `CPU Package Power` em Watts e frequências reais instantâneas dos núcleos.
   - Elimina 100% dos cálculos por estimativa matemática, exibindo exatamente as mesmas temperaturas e consumos lidos pelo FanControl e HWiNFO.

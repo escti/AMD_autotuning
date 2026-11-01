@@ -10,6 +10,7 @@ Instruções reutilizáveis carregadas sob demanda pelo agente via ferramenta `s
 | [`wpf-singlefile-app`](wpf-singlefile-app/SKILL.md) | Publish single-file .NET WPF, ícone multi-resolução, guardas de ciclo de vida do XAML | `scripts/make-icon.ps1` |
 | [`amd-hardware-audit`](amd-hardware-audit/SKILL.md) | Coleta real de dados AMD (ReBAR, CPPC, EPP, VBS, monitores, PBO) | — |
 | [`wpf-ui-automation`](wpf-ui-automation/SKILL.md) | Automação e teste de interface WPF com UI Automation nativo do Windows e screenshots | `scripts/navigate-ui.ps1` |
+| [`dotnet-hardware-telemetry`](dotnet-hardware-telemetry/SKILL.md) | Telemetria física real via LibreHardwareMonitorLib (Tctl/Tdie, Package Power, Clocks) | `scripts/probe-sensors.ps1` |
 
 ## Estrutura
 
@@ -25,10 +26,14 @@ Instruções reutilizáveis carregadas sob demanda pelo agente via ferramenta `s
 │       └── make-icon.ps1
 ├── amd-hardware-audit/
 │   └── SKILL.md
-└── wpf-ui-automation/
+├── wpf-ui-automation/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── navigate-ui.ps1
+└── dotnet-hardware-telemetry/
     ├── SKILL.md
     └── scripts/
-        └── navigate-ui.ps1
+        └── probe-sensors.ps1
 ```
 
 ## Como carregar

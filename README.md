@@ -146,7 +146,7 @@ Consulte o guia detalhado em [`TESTING.md`](TESTING.md).
 | [`CHANGELOG.md`](CHANGELOG.md) | Histórico de versões no padrão *Keep a Changelog*. |
 | [`TESTING.md`](TESTING.md) | Guia completo de testes: teste mestre automatizado, modo simulação, Sandbox e automação de UI. |
 | [`BUGS.md`](BUGS.md) | Catálogo de bugs abertos e resolvidos, com gravidade, passos de reprodução e evidências. |
-| [`.opencode/skills/`](.opencode/skills/README.md) | Skills reutilizáveis: `windows-authenticode`, `wpf-singlefile-app`, `amd-hardware-audit`, `wpf-ui-automation`. |
+| [`.opencode/skills/`](.opencode/skills/README.md) | Skills reutilizáveis: `windows-authenticode`, `wpf-singlefile-app`, `amd-hardware-audit`, `wpf-ui-automation`, `dotnet-hardware-telemetry`. |
 
 > **Regra de contribuição:** todo commit ou push exige atualização prévia da documentação
 > afetada. Detalhes na seção *Doc-First Rule* do `AGENTS.md`.

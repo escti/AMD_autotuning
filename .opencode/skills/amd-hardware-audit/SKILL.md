@@ -126,7 +126,13 @@ Impacto no Zen 4: cada alocacao de kernel gera VM Exit e esvazia o BTB, custando
 - Perfil JEDEC (1.10 V, ex.: DDR5-5200) versus EXPO/XMP (1.25-1.35 V, 5600-6000).
   Leia `ConfiguredClockSpeed` e `ConfiguredVoltage` em `Win32_PhysicalMemory`.
 
-## 9. Regras de seguranca ao automatizar tweaks
+## 9. Telemetria Térmica e Limitações do WMI no AM5
+
+- **O WMI padrão NÃO entrega a temperatura real do Zen 4:** A classe `MSAcpi_ThermalZoneTemperature` é omitida pelo firmware da maioria das placas-mãe AM5 desktop.
+- O sensor real físico é o **`Core (Tctl/Tdie)`** e deve ser lido via registradores MSR de hardware utilizando a skill `dotnet-hardware-telemetry` (`LibreHardwareMonitorLib`).
+- Para travar o consumo da CPU em runtime sem entrar na BIOS (ex: Eco Mode 65W), utilize os registradores de Processor Power Management do Windows: `PROCFREQMAX` (4700 MHz) e `PERFBOOSTMODE` (0 = Disabled).
+
+## 10. Regras de seguranca ao automatizar tweaks
 
 1. Leia o valor anterior **antes** de escrever e registre em um ledger local.
 2. Toda acao precisa de reversao simetrica testada.
