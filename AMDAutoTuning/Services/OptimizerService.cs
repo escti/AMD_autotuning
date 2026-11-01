@@ -90,10 +90,11 @@ namespace AMDAutoTuning.Services
                 RunProcess("powercfg", "/setactive 381b4222-f694-41f0-9685-ff5bb260df2e");
                 RunProcess("powercfg", "/setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMIN 0");
                 RunProcess("powercfg", "/setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 100");
+                RunProcess("powercfg", "/setacvalueindex SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 36687f9e-e3a5-4dbf-b1dc-15eb381c6863 33");
                 RunProcess("powercfg", "/setactive SCHEME_CURRENT");
 
-                Logger.Info($"Plano Equilibrado ativado. GUID anterior registrado: '{planRecord}'.", "POWER_PLAN");
-                return (true, "Plano 'Equilibrado' ativado com sucesso! Boost inteligente do Ryzen e AMD CPPC operando com folga térmica.");
+                Logger.Info($"Plano Equilibrado + EPP 33% ativados. GUID anterior registrado: '{planRecord}'.", "POWER_PLAN");
+                return (true, "Plano Equilibrado e política EPP 33% ativados! Boost inteligente do Ryzen e AMD CPPC operando com folga térmica.");
             }
             catch (Exception ex)
             {

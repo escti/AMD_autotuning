@@ -7,6 +7,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.5.1] - 2026-11-01
+
+### Modificado
+- **Plano de Energia & EPP unificados na aba *Sistema Operacional & Latência*:**
+  - O ajuste de política de energia (Plano Equilibrado + EPP em 33% para permitir transição de C-States e boost sustentado) foi totalmente consolidado na aba do SO como um item padrão do catálogo com aplicação e reversão automática.
+- **Aplicação Imediata de Presets em Tempo Real:**
+  - Clicar em qualquer preset (Eco, Balanced, Gaming, Render, Stock) agora aplica instantaneamente as políticas de energia, teto térmico e frequências de boost correspondentes no sistema, com feedback visual em tempo real (`🟢 Perfil Ativo`).
+  - Adicionado botão de atalho `[ 🚀 Abrir AMD Ryzen Master ]` para abrir o utilitário oficial da AMD caso o usuário queira monitorar ou ajustar curvas adicionais.
+- **Removida a função de gerar roteiro para BIOS:**
+  - Removidos os botões de roteiro de BIOS da interface de tuning; o app foca em controle direto no sistema e exportação de fichas técnicas de perfil (`.txt`).
+
+---
+
 ## [1.5.0] - 2026-11-01
 
 ### Adicionado

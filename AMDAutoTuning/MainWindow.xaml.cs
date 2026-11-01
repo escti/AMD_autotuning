@@ -884,7 +884,27 @@ namespace AMDAutoTuning
                 }
             }
 
-            AppendLog($"Preset de CPU selecionado: {preset.Name} (PPT: {preset.PptWatts}W, CO: {preset.AllCoreOffset}mV, TjMax: {preset.TjMaxCelsius}°C)");
+            // Atualiza os limites de frequência e energia no mostrador em tempo real
+            double targetBoost = preset.Id switch
+            {
+                "PRESET_ECO" => 4.75,
+                "PRESET_GAMING" => 5.45,
+                "PRESET_RENDER" => 5.00,
+                "PRESET_STOCK" => 5.05,
+                _ => 5.05
+            };
+            _metricsMonitor.ConfiguredMaxClockGhz = targetBoost;
+            if (GaugeClockMaxText != null) GaugeClockMaxText.Text = $"Teto Configurado: {targetBoost:F2} GHz";
+            if (GaugePowerLimit != null) GaugePowerLimit.Text = $"Limite PPT: {preset.PptWatts} W";
+
+            // Aplica as políticas do perfil imediatamente em runtime
+            var applyRes = CpuTunerService.ApplyProfileRuntime(_cpuTopology, preset, _optimizer.IsDryRun);
+            if (TxtCpuTuningStatus != null)
+            {
+                TxtCpuTuningStatus.Text = $"🟢 Perfil Ativo: {preset.Name} (PPT {preset.PptWatts}W | CO {preset.AllCoreOffset}mV | TjMax {preset.TjMaxCelsius}°C)";
+            }
+
+            AppendLog($"Preset de CPU ativado no sistema: {preset.Name} (PPT: {preset.PptWatts}W, CO: {preset.AllCoreOffset}mV, TjMax: {preset.TjMaxCelsius}°C)");
         }
 
         private void ResetPresetBorders()
@@ -1129,27 +1149,27 @@ namespace AMDAutoTuning
             });
         }
 
-        private void BtnApplyEpp_Click(object sender, RoutedEventArgs e)
+        private void BtnApplyCurrentPreset_Click(object sender, RoutedEventArgs e)
         {
-            var res = CpuTunerService.ApplyWindowsEppTuning(_optimizer.IsDryRun);
+            if (_currentPreset == null) return;
+            var res = CpuTunerService.ApplyProfileRuntime(_cpuTopology, _currentPreset, _optimizer.IsDryRun);
             AppendLog(res.message);
-            MessageBox.Show(res.message, res.success ? "Sucesso" : "Erro", MessageBoxButton.OK,
-                res.success ? MessageBoxImage.Information : MessageBoxImage.Error);
+            if (TxtCpuTuningStatus != null)
+            {
+                TxtCpuTuningStatus.Text = $"🟢 Perfil Ativo: {_currentPreset.Name} (PPT {_currentPreset.PptWatts}W | CO {_currentPreset.AllCoreOffset}mV)";
+            }
+            MessageBox.Show(res.message, res.success ? "Perfil Ativado no Sistema" : "Aviso", MessageBoxButton.OK,
+                res.success ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
 
-        private void BtnGenerateBiosGuide_Click(object sender, RoutedEventArgs e)
+        private void BtnOpenRyzenMaster_Click(object sender, RoutedEventArgs e)
         {
-            int ppt = (int)SliderPpt.Value;
-            int tdc = (int)SliderTdc.Value;
-            int edc = (int)SliderEdc.Value;
-            int tjMax = (int)SliderTjMax.Value;
-            int boost = (int)SliderBoost.Value;
-            bool isPerCore = RadioCoPerCore.IsChecked == true;
-            int allCore = (int)SliderAllCore.Value;
-            int[] perCore = _cpuTopology.Cores.Select(c => c.CurveOptimizerOffset).ToArray();
-
-            string guide = CpuTunerService.GenerateBiosGuide(_cpuTopology, _overview.Motherboard, ppt, tdc, edc, tjMax, boost, isPerCore, allCore, perCore);
-            ShowModal($"Roteiro de BIOS — {_overview.Motherboard}", guide);
+            var res = CpuTunerService.LaunchRyzenMaster();
+            AppendLog(res.message);
+            if (!res.success)
+            {
+                MessageBox.Show(res.message, "AMD Ryzen Master", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
 
         private void BtnExportProfile_Click(object sender, RoutedEventArgs e)
@@ -1165,7 +1185,8 @@ namespace AMDAutoTuning
                 int allCore = (int)SliderAllCore.Value;
                 int[] perCore = _cpuTopology.Cores.Select(c => c.CurveOptimizerOffset).ToArray();
 
-                string content = CpuTunerService.GenerateBiosGuide(_cpuTopology, _overview.Motherboard, ppt, tdc, edc, tjMax, boost, isPerCore, allCore, perCore);
+                string profileName = _currentPreset?.Name ?? "Custom";
+                string content = CpuTunerService.GenerateProfileSummary(_cpuTopology, profileName, ppt, tdc, edc, tjMax, boost, isPerCore, allCore, perCore);
 
                 string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 string profileDir = Path.Combine(appData, "AMDAutoTuning", "Profiles");
@@ -1173,8 +1194,8 @@ namespace AMDAutoTuning
                 string file = Path.Combine(profileDir, $"perfil_cpu_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
                 File.WriteAllText(file, content, Encoding.UTF8);
 
-                AppendLog($"Perfil exportado com sucesso: {file}");
-                MessageBox.Show($"Perfil exportado para:\n\n{file}\n\nVocê pode copiar este arquivo para um pendrive ou celular para consultar enquanto estiver no Setup da BIOS.",
+                AppendLog($"Ficha técnica do perfil exportada: {file}");
+                MessageBox.Show($"Ficha técnica do perfil exportada para:\n\n{file}\n\nO arquivo contém os limites de potência, temperatura e offsets de Curve Optimizer configurados.",
                     "Perfil Exportado", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)

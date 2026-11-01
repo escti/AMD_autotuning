@@ -1036,31 +1036,31 @@
 
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="AÇÕES E APLICAÇÃO DO TUNING" FontSize="12" FontWeight="Bold" Foreground="#F8FAFC"/>
-                                            <TextBlock Text="Aplique as políticas do Windows instantaneamente ou gere o guia passo a passo da BIOS." FontSize="10.5" Foreground="#94A3B8"/>
+                                            <TextBlock x:Name="TxtCpuTuningStatus" Text="Selecione um preset acima para ativar os limites de energia e boost no sistema." FontSize="10.5" Foreground="#38BDF8"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button Style="{StaticResource SuccessButtonStyle}" Margin="0,0,8,0" Click="BtnApplyEpp_Click"
-                                                    AutomationProperties.AutomationId="BtnApplyEpp" ToolTip="Configura o plano Equilibrado e EPP 33 para permitir sono CC6">
+                                            <Button Style="{StaticResource SuccessButtonStyle}" Margin="0,0,8,0" Click="BtnApplyCurrentPreset_Click"
+                                                    AutomationProperties.AutomationId="BtnApplyCurrentPreset" ToolTip="Aplica o perfil selecionado imediatamente em tempo real">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="⚡" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="Aplicar EPP no Windows"/>
+                                                    <TextBlock Text="Aplicar no Sistema"/>
                                                 </StackPanel>
                                             </Button>
 
-                                            <Button Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0" Click="BtnGenerateBiosGuide_Click"
-                                                    AutomationProperties.AutomationId="BtnGenerateBiosGuide" ToolTip="Gera as instruções da BIOS com os valores calculados">
+                                            <Button Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0" Click="BtnOpenRyzenMaster_Click"
+                                                    AutomationProperties.AutomationId="BtnOpenRyzenMaster" ToolTip="Abrir o utilitário oficial AMD Ryzen Master instalado no computador">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📋" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="Gerar Roteiro BIOS"/>
+                                                    <TextBlock Text="🚀" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="Abrir AMD Ryzen Master"/>
                                                 </StackPanel>
                                             </Button>
 
                                             <Button Style="{StaticResource SecondaryButtonStyle}" Click="BtnExportProfile_Click"
-                                                    AutomationProperties.AutomationId="BtnExportProfile" ToolTip="Salva um resumo de texto do perfil em disco">
+                                                    AutomationProperties.AutomationId="BtnExportProfile" ToolTip="Salva a ficha técnica do perfil em disco para consulta">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="📁" Margin="0,0,5,0"/>
-                                                    <TextBlock Text="Exportar Perfil"/>
+                                                    <TextBlock Text="Exportar Resumo"/>
                                                 </StackPanel>
                                             </Button>
                                         </StackPanel>

@@ -117,7 +117,6 @@ namespace AMDAutoTuning.Services
             items.Add(CheckRyzenCppcRanking());
             items.Add(CheckCpuTuningOpportunity());
             items.Add(CheckVbsHvci());
-            items.Add(CheckEppPreference());
             items.Add(CheckRamExpoProfile());
 
             // --- CATEGORY: SISTEMA OPERACIONAL & LATÊNCIA ---
@@ -559,6 +558,7 @@ namespace AMDAutoTuning.Services
         private DiagnosticItem CheckPowerPlan()
         {
             string activeScheme = "";
+            int epp = 33;
             try
             {
                 var proc = new Process
@@ -578,34 +578,63 @@ namespace AMDAutoTuning.Services
             }
             catch { }
 
+            try
+            {
+                var procEpp = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "powercfg",
+                        Arguments = "/query SCHEME_CURRENT 54533251-82be-4824-96c1-47b60b740d00 36687f9e-e3a5-4dbf-b1dc-15eb381c6863",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                procEpp.Start();
+                string outStr = procEpp.StandardOutput.ReadToEnd();
+                procEpp.WaitForExit();
+
+                var match = Regex.Match(outStr, @"0x([0-9a-fA-F]+)");
+                if (match.Success)
+                {
+                    epp = Convert.ToInt32(match.Groups[1].Value, 16);
+                }
+            }
+            catch { }
+
             bool isUltimate = activeScheme.Contains("7dd30729", StringComparison.OrdinalIgnoreCase) || 
                               activeScheme.Contains("Desempenho Máximo", StringComparison.OrdinalIgnoreCase) ||
                               activeScheme.Contains("Ultimate Performance", StringComparison.OrdinalIgnoreCase);
 
+            bool isOptimized = !isUltimate && (activeScheme.Contains("381b4222", StringComparison.OrdinalIgnoreCase) ||
+                                              activeScheme.Contains("Equilibrado", StringComparison.OrdinalIgnoreCase) ||
+                                              activeScheme.Contains("Balanced", StringComparison.OrdinalIgnoreCase)) && epp == 33;
+
             var item = new DiagnosticItem
             {
                 Id = "POWER_PLAN",
-                Title = "Plano de Energia do Windows (AMD CPPC)",
-                Category = "Processador / SO",
+                Title = "Plano de Energia & EPP (AMD CPPC)",
+                Category = "Sistema Operacional / Energia",
                 CategoryKey = "OS",
-                RecommendedValue = "Equilibrado (Recomendado oficial da AMD para Ryzen 7000)"
+                RecommendedValue = "Equilibrado + EPP 33% (Permite C-States e Boost Total no Zen 4)"
             };
 
-            if (isUltimate)
+            if (!isOptimized)
             {
                 item.Severity = DiagnosticSeverity.Warning;
-                item.CurrentValue = "Desempenho Máximo (Prejudica C-States e Agendamento CPPC)";
-                item.Description = "O plano Desempenho Máximo força núcleos ociosos do Ryzen 7600X a ficarem acordados, aquecendo o chip sem necessidade e reduzindo o espaço térmico para o boost single-core máximo (5.35 GHz+). O plano Equilibrado entrega mais estabilidade e menores temperaturas.";
+                item.CurrentValue = isUltimate ? "Desempenho Máximo / EPP 0% (Prejudica C-States)" : $"Plano não otimizado (EPP {epp}%)";
+                item.Description = "O plano ou a política EPP atual força núcleos ociosos do Ryzen a ficarem acordados, aquecendo o chip e reduzindo o espaço térmico para o boost single-core máximo (5.35 GHz+). O plano Equilibrado com EPP 33% entrega mais estabilidade e menores temperaturas.";
                 item.HasAction = true;
                 item.ActionKey = "APPLY_BALANCED_PLAN";
-                item.ActionLabel = "Ativar Plano Equilibrado";
+                item.ActionLabel = "Ativar Plano Equilibrado & EPP 33%";
                 item.CanRevert = false;
             }
             else
             {
                 item.Severity = DiagnosticSeverity.Ok;
-                item.CurrentValue = "Equilibrado (Otimizado para AMD CPPC)";
-                item.Description = "O agendamento de núcleos da CPU Zen 4 está perfeito, permitindo transições rápidas de frequência e menor temperatura idle.";
+                item.CurrentValue = "Equilibrado + EPP 33% (Otimizado para AMD CPPC)";
+                item.Description = "O agendamento de núcleos da CPU Zen 4 está perfeito: plano Equilibrado e EPP em 33% permitem transições rápidas de frequência e menor temperatura idle.";
                 item.HasAction = false;
                 item.CanRevert = true;
                 item.RevertKey = "REVERT_POWER_PLAN";
