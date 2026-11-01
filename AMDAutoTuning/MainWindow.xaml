@@ -602,9 +602,10 @@
                                     <!-- GAUGE 3: CLOCK DE PICO -->
                                     <Border Grid.Column="2" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="3,0,3,0">
                                         <StackPanel>
-                                            <TextBlock Text="🚀 CLOCK DE PICO" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
-                                            <TextBlock x:Name="GaugeClockText" Text="4.70 GHz" FontSize="20" FontWeight="Bold" Foreground="#FACC15" Margin="0,4,0,4"/>
-                                            <TextBlock Text="Precision Boost 2 Ativo" FontSize="10" Foreground="#94A3B8"/>
+                                            <TextBlock Text="🚀 FREQUÊNCIA DA CPU" FontSize="9" FontWeight="Bold" Foreground="#94A3B8"/>
+                                            <TextBlock x:Name="GaugeClockText" Text="4.70 GHz" FontSize="20" FontWeight="Bold" Foreground="#FACC15" Margin="0,4,0,2"/>
+                                            <ProgressBar x:Name="GaugeClockBar" Value="85" Maximum="100" Height="4" Background="#242B3B" Foreground="#FACC15" BorderThickness="0" Margin="0,0,0,4"/>
+                                            <TextBlock x:Name="GaugeClockMaxText" Text="Teto Configurado: 5.35 GHz" FontSize="10" Foreground="#94A3B8"/>
                                         </StackPanel>
                                     </Border>
 
@@ -633,9 +634,22 @@
                                     <Border x:Name="BorderPresetEco" Grid.Column="0" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="0,0,4,0">
                                         <StackPanel>
                                             <TextBlock Text="🌿 Eco 65W" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
-                                            <TextBlock Text="Silêncio &amp; Frio" FontSize="10" Foreground="#22C55E" Margin="0,2,0,6"/>
-                                            <TextBlock x:Name="TxtPresetEcoStats" Text="PPT: 88W | CO: -25" FontSize="10" Foreground="#94A3B8"/>
-                                            <Button x:Name="BtnPresetEco" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                            <TextBlock Text="Silêncio &amp; Frio" FontSize="10" Foreground="#22C55E" Margin="0,2,0,4"/>
+                                            <ItemsControl x:Name="ItemsBadgesEco" Margin="0,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding BackgroundColor}" BorderBrush="{Binding BorderColor}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,3">
+                                                            <TextBlock Text="{Binding Text}" FontSize="8.5" FontWeight="Bold" Foreground="{Binding TextColor}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                            <Button x:Name="BtnPresetEco" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,6,0,0" Padding="6,4" FontSize="10.5"
                                                     Click="PresetEco_Click" AutomationProperties.AutomationId="BtnPresetEco"/>
                                         </StackPanel>
                                     </Border>
@@ -644,9 +658,22 @@
                                     <Border x:Name="BorderPresetBalanced" Grid.Column="1" Background="#1B2232" BorderBrush="#38BDF8" BorderThickness="1.5" CornerRadius="8" Padding="10,12" Margin="3,0,3,0">
                                         <StackPanel>
                                             <TextBlock Text="⚖️ Balanced" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
-                                            <TextBlock Text="Recomendado" FontSize="10" Foreground="#38BDF8" Margin="0,2,0,6"/>
-                                            <TextBlock x:Name="TxtPresetBalancedStats" Text="PPT: 105W | CO: -20" FontSize="10" Foreground="#94A3B8"/>
-                                            <Button x:Name="BtnPresetBalanced" Style="{StaticResource ActionButtonStyle}" Background="#0284C7" Content="✓ Ativo" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                            <TextBlock Text="Recomendado" FontSize="10" Foreground="#38BDF8" Margin="0,2,0,4"/>
+                                            <ItemsControl x:Name="ItemsBadgesBalanced" Margin="0,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding BackgroundColor}" BorderBrush="{Binding BorderColor}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,3">
+                                                            <TextBlock Text="{Binding Text}" FontSize="8.5" FontWeight="Bold" Foreground="{Binding TextColor}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                            <Button x:Name="BtnPresetBalanced" Style="{StaticResource ActionButtonStyle}" Background="#0284C7" Content="✓ Ativo" Margin="0,6,0,0" Padding="6,4" FontSize="10.5"
                                                     Click="PresetBalanced_Click" AutomationProperties.AutomationId="BtnPresetBalanced"/>
                                         </StackPanel>
                                     </Border>
@@ -655,9 +682,22 @@
                                     <Border x:Name="BorderPresetGaming" Grid.Column="2" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="3,0,3,0">
                                         <StackPanel>
                                             <TextBlock Text="🎯 Gaming" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
-                                            <TextBlock Text="FPS &amp; 1% Low" FontSize="10" Foreground="#FACC15" Margin="0,2,0,6"/>
-                                            <TextBlock x:Name="TxtPresetGamingStats" Text="PPT: 130W | +200MHz" FontSize="10" Foreground="#94A3B8"/>
-                                            <Button x:Name="BtnPresetGaming" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                            <TextBlock Text="FPS &amp; 1% Low" FontSize="10" Foreground="#FACC15" Margin="0,2,0,4"/>
+                                            <ItemsControl x:Name="ItemsBadgesGaming" Margin="0,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding BackgroundColor}" BorderBrush="{Binding BorderColor}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,3">
+                                                            <TextBlock Text="{Binding Text}" FontSize="8.5" FontWeight="Bold" Foreground="{Binding TextColor}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                            <Button x:Name="BtnPresetGaming" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,6,0,0" Padding="6,4" FontSize="10.5"
                                                     Click="PresetGaming_Click" AutomationProperties.AutomationId="BtnPresetGaming"/>
                                         </StackPanel>
                                     </Border>
@@ -666,9 +706,22 @@
                                     <Border x:Name="BorderPresetRender" Grid.Column="3" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="3,0,3,0">
                                         <StackPanel>
                                             <TextBlock Text="🚀 Multi-Thread" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
-                                            <TextBlock Text="Render &amp; Heavy" FontSize="10" Foreground="#A78BFA" Margin="0,2,0,6"/>
-                                            <TextBlock x:Name="TxtPresetRenderStats" Text="PPT: 142W | CO: -15" FontSize="10" Foreground="#94A3B8"/>
-                                            <Button x:Name="BtnPresetRender" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                            <TextBlock Text="Render &amp; Heavy" FontSize="10" Foreground="#A78BFA" Margin="0,2,0,4"/>
+                                            <ItemsControl x:Name="ItemsBadgesRender" Margin="0,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding BackgroundColor}" BorderBrush="{Binding BorderColor}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,3">
+                                                            <TextBlock Text="{Binding Text}" FontSize="8.5" FontWeight="Bold" Foreground="{Binding TextColor}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                            <Button x:Name="BtnPresetRender" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,6,0,0" Padding="6,4" FontSize="10.5"
                                                     Click="PresetRender_Click" AutomationProperties.AutomationId="BtnPresetRender"/>
                                         </StackPanel>
                                     </Border>
@@ -677,70 +730,131 @@
                                     <Border x:Name="BorderPresetStock" Grid.Column="4" Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="10,12" Margin="4,0,0,0">
                                         <StackPanel>
                                             <TextBlock Text="🛡️ Stock AMD" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC"/>
-                                            <TextBlock Text="Padrão Fábrica" FontSize="10" Foreground="#94A3B8" Margin="0,2,0,6"/>
-                                            <TextBlock x:Name="TxtPresetStockStats" Text="Stock | CO: 0" FontSize="10" Foreground="#94A3B8"/>
-                                            <Button x:Name="BtnPresetStock" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,10,0,0" Padding="6,4" FontSize="10.5"
+                                            <TextBlock Text="Padrão Fábrica" FontSize="10" Foreground="#94A3B8" Margin="0,2,0,4"/>
+                                            <ItemsControl x:Name="ItemsBadgesStock" Margin="0,2,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding BackgroundColor}" BorderBrush="{Binding BorderColor}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,3">
+                                                            <TextBlock Text="{Binding Text}" FontSize="8.5" FontWeight="Bold" Foreground="{Binding TextColor}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                            <Button x:Name="BtnPresetStock" Style="{StaticResource ActionButtonStyle}" Background="#1E293B" Content="Selecionar" Margin="0,6,0,0" Padding="6,4" FontSize="10.5"
                                                     Click="PresetStock_Click" AutomationProperties.AutomationId="BtnPresetStock"/>
                                         </StackPanel>
                                     </Border>
                                 </Grid>
 
-                                <!-- 4. MOTOR DE TESTE DE ESTRESSE -->
+                                <!-- 4. MOTOR DE TESTE DE ESTRESSE & PLACAR DE RESULTADOS -->
                                 <Border Background="#161922" BorderBrush="#252B3A" BorderThickness="1" CornerRadius="8" Padding="16,14" Margin="0,0,0,16">
                                     <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.15*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="0.85*" />
+                                        </Grid.ColumnDefinitions>
 
-                                        <Grid Grid.Row="0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <TextBlock Text="🔬 TESTE DE ESTABILIDADE DA CPU (STRESS TEST)" FontSize="13" FontWeight="Bold" Foreground="#F8FAFC"/>
-                                                <TextBlock Text="Calcula matrizes complexas e paridade em todas as threads para validar se o Curve Optimizer não causa erros de ponto flutuante."
-                                                           FontSize="11" Foreground="#94A3B8" Margin="0,2,0,0"/>
-                                            </StackPanel>
+                                        <!-- COLUNA ESQUERDA: CONTROLES DO TESTE -->
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="🔬 TESTE DE ESTABILIDADE DA CPU (STRESS TEST)" FontSize="13" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                            <TextBlock Text="Valida cálculos matriciais e divergência de ponto flutuante após undervolt." FontSize="11" Foreground="#94A3B8" Margin="0,2,0,10"/>
 
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="Duração: " FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                <RadioButton x:Name="RadioStress30s" Content="30s" IsChecked="True" Foreground="#CBD5E1" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                <RadioButton x:Name="RadioStress60s" Content="1m" Foreground="#CBD5E1" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                <RadioButton x:Name="RadioStress120s" Content="2m" Foreground="#CBD5E1" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                <RadioButton x:Name="RadioStress300s" Content="5m" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Grid>
+                                            <!-- SELETORES: MODO E DURAÇÃO -->
+                                            <Grid Margin="0,0,0,10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                                    <TextBlock Text="Modo: " FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <RadioButton x:Name="RadioStressMulti" Content="Multi-Thread" IsChecked="True" Foreground="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                    <RadioButton x:Name="RadioStressSingle" Content="Single (Gold ⭐)" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                                </StackPanel>
 
-                                        <!-- Controls & Progress -->
-                                        <Grid Grid.Row="1" Margin="0,12,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
+                                                <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                                                    <TextBlock Text="Duração: " FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <RadioButton x:Name="RadioStress30s" Content="30s" IsChecked="True" Foreground="#CBD5E1" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <RadioButton x:Name="RadioStress60s" Content="1m" Foreground="#CBD5E1" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <RadioButton x:Name="RadioStress120s" Content="2m" Foreground="#CBD5E1" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                    <RadioButton x:Name="RadioStress300s" Content="5m" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
 
-                                            <StackPanel Orientation="Horizontal" Grid.Column="0">
-                                                <Button x:Name="BtnStartStress" Style="{StaticResource SuccessButtonStyle}" Content="⚡ Iniciar Teste"
-                                                        Padding="14,6" Margin="0,0,8,0" Click="BtnStartStress_Click" AutomationProperties.AutomationId="BtnStartStress"/>
-                                                <Button x:Name="BtnStopStress" Style="{StaticResource RevertButtonStyle}" Content="⏹ Parar"
-                                                        IsEnabled="False" Padding="12,6" Click="BtnStopStress_Click" AutomationProperties.AutomationId="BtnStopStress"/>
-                                            </StackPanel>
+                                            <!-- BOTOES E BARRA -->
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                                    <Button x:Name="BtnStartStress" Style="{StaticResource SuccessButtonStyle}" Content="⚡ Iniciar Teste"
+                                                            Padding="14,6" Margin="0,0,8,0" Click="BtnStartStress_Click" AutomationProperties.AutomationId="BtnStartStress"/>
+                                                    <Button x:Name="BtnStopStress" Style="{StaticResource RevertButtonStyle}" Content="⏹ Parar"
+                                                            IsEnabled="False" Padding="12,6" Click="BtnStopStress_Click" AutomationProperties.AutomationId="BtnStopStress"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                                                    <ProgressBar x:Name="StressProgressBar" Value="0" Maximum="100" Height="8" Background="#242B3B" Foreground="#22C55E" BorderThickness="0"/>
+                                                    <Grid Margin="0,4,0,0">
+                                                        <TextBlock x:Name="TxtStressStatus" Text="Pronto para testar." FontSize="10.5" Foreground="#94A3B8"/>
+                                                        <TextBlock x:Name="TxtStressOps" Text="" FontSize="10.5" Foreground="#38BDF8" HorizontalAlignment="Right"/>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Grid>
 
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                                <ProgressBar x:Name="StressProgressBar" Value="0" Maximum="100" Height="8" Background="#242B3B" Foreground="#22C55E" BorderThickness="0"/>
-                                                <Grid Margin="0,4,0,0">
-                                                    <TextBlock x:Name="TxtStressStatus" Text="Pronto para testar estabilidade." FontSize="10.5" Foreground="#94A3B8"/>
-                                                    <TextBlock x:Name="TxtStressOps" Text="" FontSize="10.5" Foreground="#38BDF8" HorizontalAlignment="Right"/>
+                                            <!-- CAIXA DE ALERTA DO RESULTADO -->
+                                            <Border x:Name="BorderStressResult" Background="#1B2B20" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="6"
+                                                    Padding="12,8" Margin="0,6,0,0" Visibility="Collapsed">
+                                                <TextBlock x:Name="TxtStressResultMsg" Text="✓ Estabilidade Aprovada!" FontSize="11" FontWeight="SemiBold" Foreground="#22C55E"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- COLUNA DIREITA: PLACAR DE BENCHMARKS (SCOREBOARD) -->
+                                        <Border Grid.Column="2" Background="#11131A" BorderBrush="#1F2533" BorderThickness="1" CornerRadius="6" Padding="10">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+
+                                                <Grid Grid.Row="0" Margin="0,0,0,6">
+                                                    <TextBlock Text="🏆 PLACAR DE BENCHMARKS" FontSize="11" FontWeight="Bold" Foreground="#F8FAFC"/>
+                                                    <TextBlock Text="(Passe o mouse p/ detalhes)" FontSize="9" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                                 </Grid>
-                                            </StackPanel>
-                                        </Grid>
 
-                                        <!-- Result Alert Box -->
-                                        <Border x:Name="BorderStressResult" Grid.Row="2" Background="#1B2B20" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="6"
-                                                Padding="12,8" Margin="0,10,0,0" Visibility="Collapsed">
-                                            <TextBlock x:Name="TxtStressResultMsg" Text="✓ Estabilidade Aprovada!" FontSize="11" FontWeight="SemiBold" Foreground="#22C55E"/>
+                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Height="130">
+                                                    <ItemsControl x:Name="ItemsScoreboard">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Background="#161922" BorderBrush="#202636" BorderThickness="1" CornerRadius="4" Padding="8,5" Margin="0,0,0,4"
+                                                                        ToolTip="{Binding AppliedSettingsTooltip}">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="52"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                            <ColumnDefinition Width="32"/>
+                                                                            <ColumnDefinition Width="52"/>
+                                                                            <ColumnDefinition Width="70"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBlock Grid.Column="0" Text="{Binding TimeDisplay}" FontSize="10" Foreground="#64748B" VerticalAlignment="Center"/>
+                                                                        <TextBlock Grid.Column="1" Text="{Binding TestType}" FontSize="10" FontWeight="SemiBold" Foreground="#F8FAFC" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Grid.Column="2" Text="{Binding Duration}" FontSize="10" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                                                        <Border Grid.Column="3" Background="{Binding StatusBackground}" CornerRadius="3" Padding="4,1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                            <TextBlock Text="{Binding StatusText}" FontSize="8.5" FontWeight="Bold" Foreground="{Binding StatusColor}"/>
+                                                                        </Border>
+                                                                        <TextBlock Grid.Column="4" Text="{Binding ScoreDisplay}" FontSize="10.5" FontWeight="Bold" Foreground="#FACC15" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                            </Grid>
                                         </Border>
                                     </Grid>
                                 </Border>

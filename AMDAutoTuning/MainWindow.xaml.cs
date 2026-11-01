@@ -36,6 +36,7 @@ namespace AMDAutoTuning
         public ObservableCollection<DiagnosticItem> DisplayedDiagnostics { get; } = new();
         public ObservableCollection<DependencyItem> DependencyItems { get; } = new();
         public ObservableCollection<CpuCoreInfo> DisplayedCoreSliders { get; } = new();
+        public ObservableCollection<StressScoreRecord> ScoreboardItems { get; } = new();
 
         /// <summary>Versao exibida no titulo, derivada do assembly (nunca fica dessincronizada).</summary>
         public string AppVersionLabel { get; } =
@@ -62,6 +63,18 @@ namespace AMDAutoTuning
 
             ItemsCoreSliders.ItemsSource = DisplayedCoreSliders;
             foreach (var core in _cpuTopology.Cores) { DisplayedCoreSliders.Add(core); }
+
+            ItemsScoreboard.ItemsSource = ScoreboardItems;
+
+            // Badges estilo MMORPG para as receitas da comunidade
+            if (_cpuPresets.Count >= 5)
+            {
+                ItemsBadgesEco.ItemsSource = _cpuPresets[0].AttributeBadges;
+                ItemsBadgesBalanced.ItemsSource = _cpuPresets[1].AttributeBadges;
+                ItemsBadgesGaming.ItemsSource = _cpuPresets[2].AttributeBadges;
+                ItemsBadgesRender.ItemsSource = _cpuPresets[3].AttributeBadges;
+                ItemsBadgesStock.ItemsSource = _cpuPresets[4].AttributeBadges;
+            }
 
             _metricsMonitor.MetricsUpdated += OnMetricsUpdated;
             _stressTester.ProgressChanged += OnStressProgressChanged;
@@ -972,7 +985,13 @@ namespace AMDAutoTuning
         private void SliderBoost_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (!_isInitialized || TxtBoostValue == null) return;
-            TxtBoostValue.Text = $"+{(int)e.NewValue} MHz";
+            int boostMhz = (int)e.NewValue;
+            TxtBoostValue.Text = $"+{boostMhz} MHz";
+            _metricsMonitor.ConfiguredMaxClockGhz = 5.05 + (boostMhz / 1000.0);
+            if (GaugeClockMaxText != null)
+            {
+                GaugeClockMaxText.Text = $"Teto Configurado: {_metricsMonitor.ConfiguredMaxClockGhz:F2} GHz";
+            }
         }
 
         private async void BtnStartStress_Click(object sender, RoutedEventArgs e)
@@ -982,15 +1001,21 @@ namespace AMDAutoTuning
             else if (RadioStress120s?.IsChecked == true) duration = 120;
             else if (RadioStress300s?.IsChecked == true) duration = 300;
 
+            bool isSingle = RadioStressSingle?.IsChecked == true;
+            var mode = isSingle ? StressTestMode.SingleCoreGold : StressTestMode.MultiThread;
+            int goldThread = _cpuTopology.GoldCore?.LogicalThread1 ?? 0;
+
             BtnStartStress.IsEnabled = false;
             BtnStopStress.IsEnabled = true;
             StressProgressBar.Value = 0;
             BorderStressResult.Visibility = Visibility.Collapsed;
-            TxtStressStatus.Text = $"Executando teste intensivo de {duration} segundos em {_cpuTopology.LogicalThreads} threads...";
 
-            AppendLog($"Iniciando teste de estresse da CPU ({duration}s, {_cpuTopology.LogicalThreads} threads)...");
+            string targetDesc = isSingle ? $"Single-Core (Núcleo Gold #{_cpuTopology.GoldCore?.CoreIndex ?? 0})" : $"{_cpuTopology.LogicalThreads} threads (Multi-Thread)";
+            TxtStressStatus.Text = $"Executando teste intensivo de {duration}s em {targetDesc}...";
 
-            await _stressTester.StartAsync(duration);
+            AppendLog($"Iniciando teste de estresse da CPU ({duration}s, {targetDesc})...");
+
+            await _stressTester.StartAsync(duration, mode, goldThread);
         }
 
         private void BtnStopStress_Click(object sender, RoutedEventArgs e)
@@ -1019,7 +1044,7 @@ namespace AMDAutoTuning
                 BtnStopStress.IsEnabled = false;
                 StressProgressBar.Value = 100;
                 TxtStressStatus.Text = "Teste finalizado.";
-                TxtStressOps.Text = $"{r.TotalCalculations:N0} ops totais";
+                TxtStressOps.Text = $"Score: {r.Score:N0} pts | {r.TotalCalculations:N0} ops";
 
                 BorderStressResult.Visibility = Visibility.Visible;
                 if (r.Passed)
@@ -1028,7 +1053,7 @@ namespace AMDAutoTuning
                     BorderStressResult.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E"));
                     TxtStressResultMsg.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E"));
                     TxtStressResultMsg.Text = r.Summary;
-                    AppendLog("Teste de estresse APROVADO com estabilidade total.");
+                    AppendLog($"Teste de estresse APROVADO! Score: {r.Score:N0} pontos.");
                 }
                 else
                 {
@@ -1036,8 +1061,48 @@ namespace AMDAutoTuning
                     BorderStressResult.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
                     TxtStressResultMsg.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
                     TxtStressResultMsg.Text = r.Summary;
-                    AppendLog($"Aviso: Instabilidade detectada no teste de estresse ({r.FailureMessages.Count} erros).");
+                    AppendLog($"Aviso: Instabilidade detectada no teste de estresse ({r.FailureMessages.Count} erros). Score: {r.Score:N0} pts.");
                 }
+
+                // Monta a Ficha Técnica para o Tooltip do Placar
+                string testTypeName = r.Mode == StressTestMode.SingleCoreGold ? "Single (Gold ⭐)" : "Multi-Thread";
+                string durStr = $"{r.Duration.TotalSeconds:F0}s";
+
+                var tooltipSb = new StringBuilder();
+                tooltipSb.AppendLine("⚙️ FICHA TÉCNICA APLICADA NESTA RODADA:");
+                tooltipSb.AppendLine($"• Perfil Base: {_currentPreset?.Name ?? "Custom"}");
+                tooltipSb.AppendLine($"• Potência: PPT {(int)SliderPpt.Value}W | TDC {(int)SliderTdc.Value}A | EDC {(int)SliderEdc.Value}A");
+                tooltipSb.AppendLine($"• Temperatura Máxima: TjMax {(int)SliderTjMax.Value}°C");
+                tooltipSb.AppendLine($"• Boost Override: +{(int)SliderBoost.Value} MHz");
+                tooltipSb.AppendLine("• Curva de Tensão (Curve Optimizer):");
+                if (RadioCoAllCore?.IsChecked == true)
+                {
+                    tooltipSb.AppendLine($"  - All-Core: {(int)SliderAllCore.Value} mV");
+                }
+                else
+                {
+                    foreach (var c in _cpuTopology.Cores)
+                    {
+                        string badge = c.IsGold ? " (⭐ Gold)" : c.IsSilver ? " (🥈 Silver)" : "";
+                        tooltipSb.AppendLine($"  - Core {c.CoreIndex}{badge}: {c.CurveOptimizerOffset} mV");
+                    }
+                }
+                tooltipSb.AppendLine();
+                tooltipSb.AppendLine($"• Resultado: {(r.Passed ? "✓ 100% Estável (0 divergências)" : "⚠️ Falha de paridade matemática")}");
+                tooltipSb.AppendLine($"• Operações: {r.TotalCalculations:N0} em {r.Duration.TotalSeconds:F1}s");
+                tooltipSb.AppendLine($"• Pontuação Alcançada: {r.Score:N0} pontos");
+
+                var record = new StressScoreRecord
+                {
+                    Timestamp = DateTime.Now,
+                    TestType = testTypeName,
+                    Duration = durStr,
+                    Passed = r.Passed,
+                    Score = r.Score,
+                    AppliedSettingsTooltip = tooltipSb.ToString().TrimEnd()
+                };
+
+                ScoreboardItems.Insert(0, record);
             });
         }
 
@@ -1057,7 +1122,9 @@ namespace AMDAutoTuning
                 {
                     GaugeTempText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(s.StatusColor));
                 }
-                if (GaugeClockText != null) GaugeClockText.Text = $"{s.MaxClockGhz:F2} GHz";
+                if (GaugeClockText != null) GaugeClockText.Text = $"{s.CurrentClockGhz:F2} GHz";
+                if (GaugeClockMaxText != null) GaugeClockMaxText.Text = $"Teto Configurado: {s.ConfiguredMaxClockGhz:F2} GHz";
+                if (GaugeClockBar != null) GaugeClockBar.Value = s.ClockPercent;
                 if (GaugePowerText != null) GaugePowerText.Text = $"{s.PowerWatts:F0} W";
             });
         }

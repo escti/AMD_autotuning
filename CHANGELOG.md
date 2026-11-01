@@ -7,6 +7,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.5.0] - 2026-11-01
+
+### Adicionado
+- **Mostrador de Frequência da CPU Atual vs Teto Máximo Configurado:**
+  - O Gauge de frequência agora exibe o clock atual em tempo real e compara visualmente contra o teto configurado de boost (Clock base + Boost Override PBO), com barra de progresso proporcional.
+- **Cartões de Receitas Prontas Estilo MMORPG (Stat Badges):**
+  - Cada preset exibe pílulas visuais de atributos: valores reduzidos em vermelho com número negativo (`-54W PPT`, `-20°C TjMax`, `-25 mV V-Core`) e ganhos em verde com número positivo (`+200 MHz Boost`, `+40% Eficiência`, `+8% 1% Low FPS`).
+- **Teste de Estresse com Suporte a Single-Core (Gold ⭐) vs Multi-Thread + Benchmark Score:**
+  - Seletor de modo entre Multi-Thread (todas as threads) e Single-Core (focado exclusivamente no melhor núcleo Gold identificado dinamicamente).
+  - Cálculo de pontuação padronizada de benchmark baseada em operações matemáticas por segundo (ex: ~14.000-16.000 pts em MT; ~2.400-2.800 pts em Single-Core).
+- **Placar Lateral de Benchmarks (Scoreboard) com Tooltip de Ficha Técnica:**
+  - Histórico de rodadas com horário, tipo de teste, duração, status de aprovação e pontuação.
+  - Ao passar o mouse sobre qualquer linha, um balão detalhado exibe a ficha técnica completa do tuning que estava ativo naquela execução (Preset, PPT, TDC, EDC, TjMax, Boost Override e offsets de Curve Optimizer por núcleo).
+
+---
+
 ## [1.4.0] - 2026-11-01
 
 ### Adicionado

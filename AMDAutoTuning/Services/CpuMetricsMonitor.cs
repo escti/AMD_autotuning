@@ -9,7 +9,9 @@ namespace AMDAutoTuning.Services
     public class CpuMetricsSnapshot
     {
         public double CpuUsagePercent { get; set; }
-        public double MaxClockGhz { get; set; } = 4.7;
+        public double CurrentClockGhz { get; set; } = 4.70;
+        public double ConfiguredMaxClockGhz { get; set; } = 5.35;
+        public double ClockPercent => ConfiguredMaxClockGhz > 0 ? Math.Min(100.0, (CurrentClockGhz / ConfiguredMaxClockGhz) * 100.0) : 0;
         public double TemperatureCelsius { get; set; } = 45.0;
         public double PowerWatts { get; set; } = 35.0;
         public string StatusColor { get; set; } = "#22C55E";
@@ -29,7 +31,9 @@ namespace AMDAutoTuning.Services
         private long _prevKernel;
         private long _prevUser;
         private bool _isFirstSample = true;
-        private double _baseClockGhz = 4.7;
+        private double _baseClockGhz = 4.70;
+
+        public double ConfiguredMaxClockGhz { get; set; } = 5.35;
 
         public event Action<CpuMetricsSnapshot>? MetricsUpdated;
 
@@ -49,6 +53,7 @@ namespace AMDAutoTuning.Services
                     if (obj["MaxClockSpeed"] != null && double.TryParse(obj["MaxClockSpeed"].ToString(), out var mhz))
                     {
                         _baseClockGhz = Math.Round(mhz / 1000.0, 2);
+                        ConfiguredMaxClockGhz = _baseClockGhz + 0.65;
                         break;
                     }
                 }
@@ -97,18 +102,19 @@ namespace AMDAutoTuning.Services
                     usage = Math.Max(0.0, Math.Min(100.0, (double)(total - idleDiff) * 100.0 / total));
                 }
 
-                // Estimativa de clock e temperatura com base na curva de carga do Ryzen
-                // Em idle: ~45°C e clocks dinâmicos; em 100%: ~75-85°C e clock de boost máximo
-                double boostClock = _baseClockGhz + (usage > 5.0 ? Math.Min(0.65, (usage / 100.0) * 0.70) : 0.0);
-                double estimatedTemp = 42.0 + (usage * 0.42); // de ~42C idle a ~84C full load
-                double estimatedPower = 28.0 + (usage * 0.77); // de ~28W idle a ~105W full load
+                // Cálculo dinâmico de clock baseado na carga do Ryzen
+                double boostMargin = Math.Max(0.2, ConfiguredMaxClockGhz - _baseClockGhz);
+                double currentClock = _baseClockGhz + (usage > 3.0 ? Math.Min(boostMargin, (usage / 100.0) * boostMargin) : 0.0);
+                double estimatedTemp = 42.0 + (usage * 0.42);
+                double estimatedPower = 28.0 + (usage * 0.77);
 
                 string color = estimatedTemp >= 85 ? "#EF4444" : estimatedTemp >= 75 ? "#F59E0B" : "#22C55E";
 
                 var snapshot = new CpuMetricsSnapshot
                 {
                     CpuUsagePercent = Math.Round(usage, 1),
-                    MaxClockGhz = Math.Round(boostClock, 2),
+                    CurrentClockGhz = Math.Round(currentClock, 2),
+                    ConfiguredMaxClockGhz = Math.Round(ConfiguredMaxClockGhz, 2),
                     TemperatureCelsius = Math.Round(estimatedTemp, 0),
                     PowerWatts = Math.Round(estimatedPower, 0),
                     StatusColor = color
